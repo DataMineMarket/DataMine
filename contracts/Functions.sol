@@ -4,7 +4,6 @@ contract Functions {
     address payable private immutable i_owner;
 
     constructor() {
-        // constructor
         i_owner = payable(tx.origin);
     }
 
