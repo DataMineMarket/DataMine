@@ -83,7 +83,7 @@ const config: HardhatUserConfig = {
       url: POLYGON_MUMBAI_RPC_URL,
       accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
       saveDeployments: true,
-      chainId: 137,
+      chainId: 80001,
     },
     arbitrum_goerli: {
       url: ARBITRUM_GOERLI_RPC_URL,

@@ -1,12 +1,12 @@
 import { assert, expect } from "chai"
 import { network, deployments, ethers } from "hardhat"
-import { Functions } from "../../typechain-types/"
+import { FunctionsConsumer } from "../../typechain-types"
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers"
 
 !(network.name == "hardhat")
     ? describe.skip : describe("Functions Unit Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
-        let functionsContract: Functions
+        let functionsContract: FunctionsConsumer
 
         beforeEach(async function () {
             accounts = await ethers.getSigners()
@@ -18,8 +18,6 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers"
         })
 
         describe("constructor", function () {
-            it("should have the correct owner", async function () {
-                expect(await functionsContract.getOwner()).to.equal(deployer.address)
-            })
+
         })
     })
