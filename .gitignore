@@ -12,6 +12,8 @@ coverage.json
 typechain
 typechain-types
 
+test/helper/
+
 # don't push the environment vars!
 .env
 
@@ -102,3 +104,4 @@ lint/tmp/
 
 gas-report.txt
 summary.md
+

@@ -5,6 +5,8 @@ export interface networkConfigItem {
     functionsRouter?: string
     functionsSubscriptionId?: string
     functionsDonId?: string
+    gasLimit?: number
+    explorerUrl?: string
 }
 
 export interface networkConfigInfo {
@@ -26,6 +28,8 @@ export const networkConfig: networkConfigInfo = {
         functionsRouter: "0x6E2dc0F9DB014aE19888F539E59285D2Ea04244C",
         functionsSubscriptionId: "621",
         functionsDonId: "fun-polygon-mumbai-1",
+        gasLimit: 300000,
+        explorerUrl: "https://mumbai.polygonscan.com",
     },
     421613: {
         name: "arbitrum_goerli",
@@ -35,3 +39,5 @@ export const networkConfig: networkConfigInfo = {
         name: "mainnet",
     },
 }
+
+export const developmentChains = ["mumbai"]
