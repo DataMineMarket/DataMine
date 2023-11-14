@@ -37,7 +37,6 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     /**
      * @notice Send a simple request
      * @param source JavaScript source code
-     * @param encryptedSecretsUrls Encrypted URLs where to fetch user secrets
      * @param donHostedSecretsSlotID Don hosted secrets slotId
      * @param donHostedSecretsVersion Don hosted secrets version
      * @param args List of arguments accessible from within the source code
@@ -46,7 +45,6 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
      */
     function sendRequest(
         string memory source,
-        bytes memory encryptedSecretsUrls,
         uint8 donHostedSecretsSlotID,
         uint64 donHostedSecretsVersion,
         string[] memory args,
@@ -57,7 +55,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     ) external onlyOwner returns (bytes32 requestId) {
         FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(source);
-        if (encryptedSecretsUrls.length > 0) req.addSecretsReference(encryptedSecretsUrls);
+        if (s_encryptedSecretsUrls.length > 0) req.addSecretsReference(s_encryptedSecretsUrls);
         else if (donHostedSecretsVersion > 0) {
             req.addDONHostedSecrets(donHostedSecretsSlotID, donHostedSecretsVersion);
         }
@@ -107,5 +105,9 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     function getPublicKey() external view returns (string memory) {
         return s_publicKey;
+    }
+
+    function getEncryptedSecretsUrls() external view returns (bytes memory) {
+        return s_encryptedSecretsUrls;
     }
 }
