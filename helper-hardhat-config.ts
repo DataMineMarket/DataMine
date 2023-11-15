@@ -31,10 +31,6 @@ export const networkConfig: networkConfigInfo = {
         gasLimit: 300000,
         explorerUrl: "https://mumbai.polygonscan.com",
     },
-    421613: {
-        name: "arbitrum_goerli",
-        blockConfirmations: 6,
-    },
     1: {
         name: "mainnet",
     },

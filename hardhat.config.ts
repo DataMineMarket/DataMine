@@ -17,23 +17,11 @@ const MAINNET_RPC_URL =
   process.env.MAINNET_RPC_URL ||
   process.env.ALCHEMY_MAINNET_RPC_URL ||
   "https://eth-mainnet.alchemyapi.io/v2/your-api-key"
-const RINKEBY_RPC_URL =
-  process.env.RINKEBY_RPC_URL || "https://eth-rinkeby.alchemyapi.io/v2/your-api-key"
-const GOERLI_RPC_URL =
-  process.env.GOERLI_RPC_URL || "https://eth-kovan.alchemyapi.io/v2/your-api-key"
 const POLYGON_MAINNET_RPC_URL =
   process.env.POLYGON_MAINNET_RPC_URL || "https://polygon-mainnet.alchemyapi.io/v2/your-api-key"
 const POLYGON_MUMBAI_RPC_URL =
   process.env.POLYGON_MUMBAI_RPC_URL || "https://polygon-mumbai.alchemyapi.io/v2/your-api-key"
-const ARBITRUM_GOERLI_RPC_URL =
-  process.env.ARBITRUM_GOERLI_RPC_URL || "https://arb-goerli.g.alchemy.com/v2/your-api-key"
 const PRIVATE_KEY = process.env.PRIVATE_KEY
-const SECONDARY_PRIVATE_KEY = process.env.SECONDARY_PRIVATE_KEY
-
-// Your API key for Etherscan, obtain one at https://etherscan.io/
-const ETHERSCAN_API_KEY = process.env.ETHERSCAN_API_KEY || "Your etherscan API key"
-const POLYGONSCAN_API_KEY = process.env.POLYGONSCAN_API_KEY || "Your polygonscan API key"
-const REPORT_GAS = process.env.REPORT_GAS || false
 
 const config: HardhatUserConfig = {
   defaultNetwork: "hardhat",
@@ -53,20 +41,6 @@ const config: HardhatUserConfig = {
       gas: 21000000,
       gasPrice: 800000000000,
     },
-    goerli: {
-      url: GOERLI_RPC_URL,
-      accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
-      saveDeployments: true,
-      chainId: 5,
-      gas: 21000000,
-      gasPrice: 8000000000,
-    },
-    rinkeby: {
-      url: RINKEBY_RPC_URL,
-      accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
-      saveDeployments: true,
-      chainId: 4,
-    },
     mainnet: {
       url: MAINNET_RPC_URL,
       accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
@@ -84,12 +58,6 @@ const config: HardhatUserConfig = {
       accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
       saveDeployments: true,
       chainId: 80001,
-    },
-    arbitrum_goerli: {
-      url: ARBITRUM_GOERLI_RPC_URL,
-      accounts: [PRIVATE_KEY!, SECONDARY_PRIVATE_KEY!],
-      saveDeployments: true,
-      chainId: 421613,
     },
   },
   gasReporter: {
