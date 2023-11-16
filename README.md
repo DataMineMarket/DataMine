@@ -41,4 +41,5 @@ This test will run on mumbai testnet, and will use real testnet funds.
 
 1. Run `yarn hardhat deploy --network mumbai`
 2. Add the contract as a consumer to the [subscription](https://functions.chain.link/mumbai/621).
+   - When creating a new subscription update `functionsSubscriptionId` in `helper-hardhat-config.ts`
 3. Run `yarn hardhat test --network mumbai`
