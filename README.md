@@ -1,5 +1,5 @@
-# DataMine
-DataMine is a decentralized, peer-to-peer market that enables average, everyday people to control their data. Businesses are able to securely purchase personal data generated from web APIs. Using Chainlink functions along with a streamlined encryption scheme, user secrets and personal data are never revealed publicly. The data is only revealed to the purchaser upon transfer of funds.
+# DataNexus Contracts
+DataNexus is a decentralized, peer-to-peer market that enables average, everyday people to control their data. Businesses are able to securely purchase personal data generated from web APIs. Using Chainlink functions along with a streamlined encryption scheme, user secrets and personal data are never revealed publicly. The data is only revealed to the purchaser upon transfer of funds.
 
 ## Prerequisites
 

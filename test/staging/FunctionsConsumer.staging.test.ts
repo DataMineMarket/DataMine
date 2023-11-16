@@ -55,7 +55,6 @@ const { ethers: ethersv5 } = require("ethers-v5")
         describe("constructor", function () {
             it("should successfully call google API", async function () {
                 let enc = new TextEncoder();
-                let dec = new TextDecoder();
 
                 const message = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
                 const encrypted_token = await crypto.subtle.encrypt("RSA-OAEP", pubKey, message)

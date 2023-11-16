@@ -1,8 +1,8 @@
 {
-  "name": "datamine",
+  "name": "datanexuscontracts",
   "version": "1.0.0",
   "main": "index.js",
-  "repository": "https://github.com/DataMineMarket/DataMine.git",
+  "repository": "https://github.com/DataMineMarket/DataNexusContracts",
   "author": "Silas Lenihan, Avery Pavilon, Yong Kang Chia",
   "license": "MIT",
   "private": false,

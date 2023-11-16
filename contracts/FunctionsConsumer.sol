@@ -99,7 +99,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
             revert UnexpectedRequestID(requestId);
         }
         s_lastResponse = response;
-        s_lastError = err;
+        s_lastError = err;  
         emit Response(requestId, s_lastResponse, s_lastError);
     }
 
