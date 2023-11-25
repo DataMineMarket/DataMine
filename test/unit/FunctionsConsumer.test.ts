@@ -1,6 +1,6 @@
 import { assert, expect } from "chai"
 import { network, deployments, ethers } from "hardhat"
-import { FunctionsConsumer } from "../../typechain-types"
+import { FunctionsConsumer, DataListingFactory } from "../../typechain-types"
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers"
 import fs from "fs";
 import {
@@ -12,7 +12,7 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
 !(network.name == "hardhat")
     ? describe.skip : describe("Functions Unit Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
-        let functionsContract: FunctionsConsumer
+        let functionsContract: FunctionsConsumer, dataListingFactoryContract: DataListingFactory
         let pubKey: CryptoKey
         let secrets: Record<string, string>
 
@@ -24,8 +24,10 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
             user = accounts[1]
             await deployments.fixture(["all"])
             secrets = JSON.parse(fs.readFileSync("test/helper/secrets.json", "utf-8"));
-
-            functionsContract = await ethers.getContract("FunctionsConsumer")
+            dataListingFactoryContract = await ethers.getContract("DataListingFactory")
+            const functionsConsumerAddress = await dataListingFactoryContract.getLastDataListing()
+            console.log(functionsConsumerAddress)
+            functionsContract = await ethers.getContractAt("FunctionsConsumer", functionsConsumerAddress) as unknown as FunctionsConsumer
             const publicKey = await functionsContract.getPublicKey();
             pubKey = await crypto.subtle.importKey(
                 "spki",

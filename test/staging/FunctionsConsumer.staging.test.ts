@@ -1,7 +1,7 @@
 import { developmentChains, networkConfig } from "../../helper-hardhat-config"
 import { assert, expect } from "chai"
 import { network, deployments, ethers } from "hardhat"
-import { FunctionsConsumer } from "../../typechain-types"
+import { DataListingFactory, FunctionsConsumer } from "../../typechain-types"
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers"
 import fs from "fs";
 import * as crypto from "crypto"
@@ -36,8 +36,9 @@ const { ethers: ethersv5 } = require("ethers-v5")
             accounts = await ethers.getSigners()
             deployer = accounts[0]
             user = accounts[1]
-
-            functionsContract = await ethers.getContract("FunctionsConsumer")
+            const dataListingFactoryContract: DataListingFactory = await ethers.getContract("DataListingFactory")
+            const functionsConsumerAddress = await dataListingFactoryContract.getLastDataListing()
+            functionsContract = await ethers.getContractAt("FunctionsConsumer", functionsConsumerAddress) as unknown as FunctionsConsumer
             functionsConsumer = functionsContract.connect(deployer)
 
             const publicKey = await functionsConsumer.getPublicKey();

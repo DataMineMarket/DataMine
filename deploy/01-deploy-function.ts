@@ -1,5 +1,5 @@
 import { HardhatRuntimeEnvironment } from "hardhat/types"
-const { ethers } = require("ethers-v5")
+const { ethers: ethersv5 } = require("ethers-v5")
 import fs from 'fs';
 import {
     SubscriptionManager,
@@ -12,15 +12,17 @@ import {
     deleteGist,
     FulfillmentCode,
 } from "@chainlink/functions-toolkit";
+import { DataListingFactory } from "../typechain-types"
 
 import { networkConfig } from "../helper-hardhat-config"
 import { DeployFunction } from "hardhat-deploy/types"
 import * as crypto from "crypto"
+import { EventLog } from "ethers";
 
 const toBase64 = (arr: Uint8Array) => btoa(String.fromCodePoint(...arr))
 
 const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-    const { deployments, getNamedAccounts, network } = hre
+    const { deployments, getNamedAccounts, network, ethers } = hre
     const { deploy, log } = deployments
     const { deployer } = await getNamedAccounts()
 
@@ -28,7 +30,19 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
     const functionRouterAddress = networkConfig[chainId].functionsRouter!
     const donId = networkConfig[chainId].functionsDonId!
+    const linkTokenAddress = networkConfig[chainId].linkToken!
+    const subscriptionId = networkConfig[chainId].functionsSubscriptionId!
 
+    log("----------------------------------------------------")
+
+    await deploy("DataListingFactory", {
+        from: deployer,
+        args: [],
+        log: true,
+        waitConfirmations: networkConfig[chainId].blockConfirmations || 1,
+    })
+
+    log("----------------------------------------------------")
 
     const keyPair = await crypto.subtle.generateKey(
         {
@@ -63,14 +77,15 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
         );
 
     let encryptedSecretsUrls
+    let subscriptionManager: SubscriptionManager
     if (chainId != 31337) {
         const rpcUrl = process.env.POLYGON_MUMBAI_RPC_URL; // fetch mumbai RPC URL
 
         if (!rpcUrl)
             throw new Error(`rpcUrl not provided  - check your environment variables`);
 
-        const wallet = new ethers.Wallet(privateKey);
-        const provider = new ethers.providers.JsonRpcProvider(rpcUrl);
+        const wallet = new ethersv5.Wallet(privateKey);
+        const provider = new ethersv5.providers.JsonRpcProvider(rpcUrl);
         const signer = wallet.connect(provider); // create ethers signer for signing transactions
 
         const secretsManager = new SecretsManager({
@@ -80,6 +95,14 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
         });
 
         await secretsManager.initialize();
+
+        subscriptionManager = new SubscriptionManager({
+            signer: signer,
+            linkTokenAddress: linkTokenAddress,
+            functionsRouterAddress: functionRouterAddress,
+        });
+
+        await subscriptionManager.initialize();
 
         const encryptedSecretsObj = await secretsManager.encryptSecrets(secrets);
 
@@ -112,17 +135,33 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     }
 
     log("----------------------------------------------------")
-    await deploy("FunctionsConsumer", {
-        from: deployer,
-        args: [
-            functionRouterAddress,
-            pubKey,
-            encryptedSecretsUrls],
-        log: true,
-        waitConfirmations: networkConfig[chainId].blockConfirmations || 1,
-    })
 
-    log("----------------------------------------------------")
+    const dataListingFactory: DataListingFactory = await ethers.getContract("DataListingFactory", deployer)
+
+    log("Creating new Data Listing...")
+    const createTx = await dataListingFactory.createDataListing(
+        functionRouterAddress,
+        pubKey,
+        encryptedSecretsUrls
+    )
+
+    const createTxReceipt = await createTx.wait(1) // Wait for the transaction to be mined
+    const logs = createTxReceipt!.logs as EventLog[]
+    const dataListingAddress = logs[0].args[0].toString();
+
+    log("✅Data Listing created at: ", dataListingAddress);
+
+    if (chainId != 31337) {
+        log("----------------------------------------------------");
+        log("Adding consumer to subscription manager...")
+        const addConsumerTxReceipt = await subscriptionManager!.addConsumer({
+            subscriptionId,
+            consumerAddress: dataListingAddress,
+        })
+        log("✅Consumer added to subscription manager");
+    }
+
+    log("----------------------------------------------------");
 }
 export default deployFunctions
 deployFunctions.tags = ["all", "functions"]

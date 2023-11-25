@@ -23,13 +23,13 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
      * @notice Initialize the contract with a specified address for the LINK token
      * @param router The address of the LINK token contract
      * @param publicKey The public key to encrypt user secret keys
-     * @param encryptedSecretsUrls Encrypted URLs where to fetch contrat secrets
+     * @param encryptedSecretsUrls Encrypted URLs where to fetch contract secrets
      **/
     constructor(
         address router,
         string memory publicKey,
         bytes memory encryptedSecretsUrls
-    ) FunctionsClient(router) ConfirmedOwner(msg.sender) {
+    ) FunctionsClient(router) ConfirmedOwner(tx.origin) {
         s_publicKey = publicKey;
         s_encryptedSecretsUrls = encryptedSecretsUrls;
     }
@@ -99,7 +99,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
             revert UnexpectedRequestID(requestId);
         }
         s_lastResponse = response;
-        s_lastError = err;  
+        s_lastError = err;
         emit Response(requestId, s_lastResponse, s_lastError);
     }
 
