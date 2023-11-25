@@ -7,6 +7,7 @@ export interface networkConfigItem {
     functionsDonId?: string
     gasLimit?: number
     explorerUrl?: string
+    linkToken?: string
 }
 
 export interface networkConfigInfo {
@@ -30,6 +31,7 @@ export const networkConfig: networkConfigInfo = {
         functionsDonId: "fun-polygon-mumbai-1",
         gasLimit: 300000,
         explorerUrl: "https://mumbai.polygonscan.com",
+        linkToken: "0x326C977E6efc84E512bB9C30f76E30c160eD06FB",
     },
     1: {
         name: "mainnet",
