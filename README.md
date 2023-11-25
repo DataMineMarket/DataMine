@@ -23,7 +23,7 @@ yarn hardhat compile
 ### Configure .env
 To run the following tests, you have to have a `.env` file configured. Copy the `.env.example` and fill in the require environemnt variables.
 
-1. You can create RPC URL using [Alchemy](https://www.alchemy.com/)
+1. You can create RPC URL using [Alchemy](https://www.alchemy.com/) or [Chainlist](https://chainlist.org/?search=avalanche&testnets=true) for testnet.
 2. Get your private key [from Metamask](https://support.metamask.io/hc/en-us/articles/360015289632-How-to-export-an-account-s-private-key#:~:text=On%20the%20'Account%20details'%20page,private%20key%20to%20your%20clipboard.) ** MAKE SURE YOU'RE USING A TEST ACOCUNT WITH NO REAL FUNDS **
 3. Get [Coinmarketcap API Key](https://coinmarketcap.com/api/)
 4. Follow the instructions [here](https://docs.chain.link/chainlink-functions/tutorials/api-use-secrets-gist#tutorial) to generate a Github API token
@@ -33,7 +33,7 @@ To run the following tests, you have to have a `.env` file configured. Copy the 
 ### Local Tests
 The local tests use Chainlink's [functions toolkit](https://github.com/smartcontractkit/functions-toolkit) to simulate functions executions localy.
 
-1. Create a file `test/helper/secrets.json`, this will be populated with a local private key.
+1. Create a file `test/helper/secrets.json`, this will be populated with a local private key after running the test command below.
 2. Run `yarn hardhat test` to run the local tests
 
 ### Staging Tests
