@@ -40,6 +40,6 @@ The local tests use Chainlink's [functions toolkit](https://github.com/smartcont
 This test will run on mumbai testnet, and will use real testnet funds.
 
 1. Run `yarn hardhat deploy --network mumbai`
-2. Add the contract as a consumer to the [subscription](https://functions.chain.link/mumbai/621).
-   - When creating a new subscription update `functionsSubscriptionId` in `helper-hardhat-config.ts`
+2. The deploy script will automatically update your [subscription](https://functions.chain.link/mumbai/621) with a newly created consumer.
+   - Make sure your subscription Id is configured in `functionsSubscriptionId` in `helper-hardhat-config.ts`
 3. Run `yarn hardhat test --network mumbai`
