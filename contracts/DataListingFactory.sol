@@ -11,15 +11,17 @@ contract DataListingFactory {
     /**
      * @notice Create a new DataListing contract
      * @param router The address of the LINK token contract
-     * @param publicKey The public key to encrypt user secret keys
+     * @param tokenKey The public key to encrypt user secret keys
      * @param encryptedSecretsUrls Encrypted URLs where to fetch contract secrets
      **/
     function createDataListing(
         address router,
-        string memory publicKey,
+        string memory tokenKey,
+        string memory dataKey,
+        string memory ipfsKey,
         bytes memory encryptedSecretsUrls
     ) external returns (address) {
-        FunctionsConsumer consumer = new FunctionsConsumer(router, publicKey, encryptedSecretsUrls);
+        FunctionsConsumer consumer = new FunctionsConsumer(router, tokenKey, dataKey, ipfsKey, encryptedSecretsUrls);
         s_dataListingContracts.push(consumer);
         emit DataListingCreated(address(consumer));
         return address(consumer);

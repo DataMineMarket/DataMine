@@ -12,7 +12,9 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     bytes public s_lastResponse;
     bytes public s_lastError;
 
-    string public s_publicKey;
+    string public s_tokenKey;
+    string public s_dataKey;
+    string public s_ipfsKey;
     bytes public s_encryptedSecretsUrls;
 
     error UnexpectedRequestID(bytes32 requestId);
@@ -22,15 +24,19 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     /**
      * @notice Initialize the contract with a specified address for the LINK token
      * @param router The address of the LINK token contract
-     * @param publicKey The public key to encrypt user secret keys
+     * @param tokenKey The public key to encrypt user secret keys
      * @param encryptedSecretsUrls Encrypted URLs where to fetch contract secrets
      **/
     constructor(
         address router,
-        string memory publicKey,
+        string memory tokenKey,
+        string memory dataKey,
+        string memory ipfsKey,
         bytes memory encryptedSecretsUrls
     ) FunctionsClient(router) ConfirmedOwner(tx.origin) {
-        s_publicKey = publicKey;
+        s_tokenKey = tokenKey;
+        s_dataKey = dataKey;
+        s_ipfsKey = ipfsKey;
         s_encryptedSecretsUrls = encryptedSecretsUrls;
     }
 
@@ -103,8 +109,16 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         emit Response(requestId, s_lastResponse, s_lastError);
     }
 
-    function getPublicKey() external view returns (string memory) {
-        return s_publicKey;
+    function getTokenKey() external view returns (string memory) {
+        return s_tokenKey;
+    }
+
+    function getDataKey() external view returns (string memory) {
+        return s_dataKey;
+    }
+
+    function getIPFSKey() external view returns (string memory) {
+        return s_ipfsKey;
     }
 
     function getEncryptedSecretsUrls() external view returns (bytes memory) {

@@ -13,7 +13,7 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
     ? describe.skip : describe("Functions Unit Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
         let functionsContract: FunctionsConsumer, dataListingFactoryContract: DataListingFactory
-        let pubKey: CryptoKey
+        let tokenCryptoKey: CryptoKey, dataCryptoKey: CryptoKey, ipfsCryptoKey: CryptoKey
         let secrets: Record<string, string>
 
         const source = fs.readFileSync("scripts/source.js", "utf-8");
@@ -28,10 +28,10 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
             const functionsConsumerAddress = await dataListingFactoryContract.getLastDataListing()
             console.log(functionsConsumerAddress)
             functionsContract = await ethers.getContractAt("FunctionsConsumer", functionsConsumerAddress) as unknown as FunctionsConsumer
-            const publicKey = await functionsContract.getPublicKey();
-            pubKey = await crypto.subtle.importKey(
+            const tokenKey = await functionsContract.getTokenKey();
+            tokenCryptoKey = await crypto.subtle.importKey(
                 "spki",
-                fromBase64(publicKey),
+                fromBase64(tokenKey),
                 {
                     name: "RSA-OAEP",
                     hash: "SHA-256",
@@ -44,9 +44,9 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
         describe("constructor", function () {
             it("should successfully call google API", async function () {
                 let enc = new TextEncoder();
-                const message = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
+                const googleToken = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
 
-                const encrypted_token = await crypto.subtle.encrypt("RSA-OAEP", pubKey, message)
+                const encrypted_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
                 const response = await simulateScript({
                     source: source,
                     args: [
