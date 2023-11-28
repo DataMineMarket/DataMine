@@ -12,6 +12,8 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     bytes public s_lastResponse;
     bytes public s_lastError;
 
+    bytes[] public s_dataCIDs;
+
     string public s_tokenKey;
     string public s_dataKey;
     string public s_ipfsKey;
@@ -106,6 +108,11 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         }
         s_lastResponse = response;
         s_lastError = err;
+
+        if (err.length == 0) { // if there is no error when making the request, add the CID to s_dataCIDs
+            s_dataCIDs.push(response);
+        }
+
         emit Response(requestId, s_lastResponse, s_lastError);
     }
 
@@ -123,5 +130,9 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     function getEncryptedSecretsUrls() external view returns (bytes memory) {
         return s_encryptedSecretsUrls;
+    }
+
+    function getDataCIDs() external view returns (bytes[] memory) {
+        return s_dataCIDs;
     }
 }

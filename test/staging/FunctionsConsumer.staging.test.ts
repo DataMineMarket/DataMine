@@ -25,7 +25,8 @@ const { ethers: ethersv5 } = require("ethers-v5")
     : describe("PromiseFund Staging Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
         let functionsContract: FunctionsConsumer, functionsConsumer: FunctionsConsumer
-        let pubKey: CryptoKey
+        let tokenCryptoKey: CryptoKey, ipfsCryptoKey: CryptoKey
+        let dataKey: string
         let secrets: Record<string, string>
 
         const chainId = network.config.chainId || 31337
@@ -41,10 +42,22 @@ const { ethers: ethersv5 } = require("ethers-v5")
             functionsContract = await ethers.getContractAt("FunctionsConsumer", functionsConsumerAddress) as unknown as FunctionsConsumer
             functionsConsumer = functionsContract.connect(deployer)
 
-            const publicKey = await functionsConsumer.getPublicKey();
-            pubKey = await crypto.subtle.importKey(
+            const tokenKey = await functionsContract.getTokenKey();
+            tokenCryptoKey = await crypto.subtle.importKey(
                 "spki",
-                fromBase64(publicKey),
+                fromBase64(tokenKey),
+                {
+                    name: "RSA-OAEP",
+                    hash: "SHA-256",
+                },
+                true,
+                ["encrypt"]
+            )
+            dataKey = await functionsContract.getDataKey(); // TODO: import key like the others?
+            const ipfsKey = await functionsContract.getIPFSKey();
+            ipfsCryptoKey = await crypto.subtle.importKey(
+                "spki",
+                fromBase64(ipfsKey),
                 {
                     name: "RSA-OAEP",
                     hash: "SHA-256",
@@ -57,10 +70,16 @@ const { ethers: ethersv5 } = require("ethers-v5")
             it("should successfully call google API", async function () {
                 let enc = new TextEncoder();
 
-                const message = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
-                const encrypted_token = await crypto.subtle.encrypt("RSA-OAEP", pubKey, message)
+                const googleToken = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
+                const ipfsKey = enc.encode(process.env.NFT_STORAGE_API_TOKEN!);
+
+                const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
+                const encrypted_ipfs_key = await crypto.subtle.encrypt("RSA-OAEP", ipfsCryptoKey, ipfsKey)
+
                 const args = [
-                    arrayBufferToBase64(encrypted_token),
+                    arrayBufferToBase64(encrypted_google_token),
+                    dataKey,
+                    arrayBufferToBase64(encrypted_ipfs_key),
                 ]
 
                 const transaction = await functionsConsumer.sendRequest(
@@ -128,7 +147,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                 `\n❌ Request ${response.requestId
                                 } not fulfilled. Code: ${fulfillmentCode}. Cost is ${ethersv5.utils.formatEther(
                                     response.totalCostInJuels
-                                )} LINK.Complete reponse: `,
+                                )} LINK. Complete reponse: `,
                                 response
                             );
                         }
@@ -147,13 +166,17 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                     `\n✅ Decoded response: `,
                                     decodedResponse
                                 );
-                                assert.equal(decodedResponse, "success")
+                                expect((decodedResponse as string).startsWith("bafkrei")).to.be.true;
                             }
                         }
                     } catch (error) {
                         assert.fail("Error listening for response", error)
                     }
                 })();
+            })
+            it("should store the CID", async function () {
+                const cidArray = await functionsConsumer.getDataCIDs();
+                console.log(cidArray[cidArray.length - 1])
             })
         })
     })
