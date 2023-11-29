@@ -17,7 +17,8 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
         let dataKey: string
         let secrets: Record<string, string>
 
-        const source = fs.readFileSync("scripts/source.js", "utf-8");
+        const googleScript = fs.readFileSync("scripts/google.js", "utf-8");
+        const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
 
         beforeEach(async function () {
             accounts = await ethers.getSigners()
@@ -63,7 +64,7 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
                 const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
                 const encrypted_ipfs_key = await crypto.subtle.encrypt("RSA-OAEP", ipfsCryptoKey, ipfsKey)
                 const response = await simulateScript({
-                    source: source,
+                    source: googleScript,
                     args: [
                         arrayBufferToBase64(encrypted_google_token),
                         dataKey,
@@ -77,8 +78,15 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
                 expect(errorString).to.be.undefined;
                 expect(response.capturedTerminalOutput.startsWith("bafkrei")).to.be.true;
             })
-            it("should store the CID", async function () {
-                
-            })
+            // it("should decrypt the data on IPFS", async function () {
+            //     //  second functions script
+            //     //  .getDataCIDs and pass as args
+            //     const response = await simulateScript({
+            //         source: decryptScript,
+            //         args: [
+
+            //         ]
+            //     })
+            // })
         })
     })
