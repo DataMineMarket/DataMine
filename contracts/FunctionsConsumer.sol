@@ -14,6 +14,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     string public s_publicKey;
     bytes public s_encryptedSecretsUrls;
+    string public s_dataSource;
 
     error UnexpectedRequestID(bytes32 requestId);
 
@@ -28,10 +29,12 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     constructor(
         address router,
         string memory publicKey,
-        bytes memory encryptedSecretsUrls
+        bytes memory encryptedSecretsUrls,
+        string memory dataSource
     ) FunctionsClient(router) ConfirmedOwner(tx.origin) {
         s_publicKey = publicKey;
         s_encryptedSecretsUrls = encryptedSecretsUrls;
+        s_dataSource = dataSource;
     }
 
     /**
@@ -109,5 +112,9 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     function getEncryptedSecretsUrls() external view returns (bytes memory) {
         return s_encryptedSecretsUrls;
+    }
+
+    function getDataSource() external view returns (string memory) {
+        return s_dataSource;
     }
 }
