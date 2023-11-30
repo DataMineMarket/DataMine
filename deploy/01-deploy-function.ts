@@ -142,7 +142,8 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const createTx = await dataListingFactory.createDataListing(
         functionRouterAddress,
         pubKey,
-        encryptedSecretsUrls
+        encryptedSecretsUrls,
+        "GoogleFit"
     )
 
     const createTxReceipt = await createTx.wait(1) // Wait for the transaction to be mined

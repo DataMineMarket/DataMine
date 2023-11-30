@@ -5,8 +5,9 @@ import {FunctionsConsumer} from "./FunctionsConsumer.sol";
 
 contract DataListingFactory {
     FunctionsConsumer[] public s_dataListingContracts;
+    string[] public s_dataListingSources;
 
-    event DataListingCreated(address indexed dataListing);
+    event DataListingCreated(address indexed dataListing, string indexed dataSource);
 
     /**
      * @notice Create a new DataListing contract
@@ -17,11 +18,18 @@ contract DataListingFactory {
     function createDataListing(
         address router,
         string memory publicKey,
-        bytes memory encryptedSecretsUrls
+        bytes memory encryptedSecretsUrls,
+        string memory dataSource
     ) external returns (address) {
-        FunctionsConsumer consumer = new FunctionsConsumer(router, publicKey, encryptedSecretsUrls);
+        FunctionsConsumer consumer = new FunctionsConsumer(
+            router,
+            publicKey,
+            encryptedSecretsUrls,
+            dataSource
+        );
         s_dataListingContracts.push(consumer);
-        emit DataListingCreated(address(consumer));
+        s_dataListingSources.push(dataSource);
+        emit DataListingCreated(address(consumer), dataSource);
         return address(consumer);
     }
 
@@ -37,6 +45,13 @@ contract DataListingFactory {
      **/
     function getDataListings() external view returns (FunctionsConsumer[] memory) {
         return s_dataListingContracts;
+    }
+
+    /**
+     * @notice Get the list of DataListing sources
+     **/
+    function getDataListingSources() external view returns (string[] memory) {
+        return s_dataListingSources;
     }
 
     /**
