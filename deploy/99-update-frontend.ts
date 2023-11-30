@@ -16,10 +16,16 @@ const updateFrontEnd: DeployFunction = async function (hre: HardhatRuntimeEnviro
 
 async function updateAbi() {
     const dataListingFactory = await ethers.getContract("DataListingFactory")
+    const functionsConsumer = await ethers.getContract("FunctionsConsumer")
 
     fs.writeFileSync(
         `${frontEndAbiLocation}DataListingFactory.json`,
         dataListingFactory.interface.formatJson()
+    )
+
+    fs.writeFileSync(
+        `${frontEndAbiLocation}FunctionsConsumer.json`,
+        functionsConsumer.interface.formatJson()
     )
 }
 
@@ -32,9 +38,9 @@ async function updateContractAddresses() {
     const addr = dataListingFactory.target
 
     if (chainId in contractAddresses) {
-        contractAddresses[chainId]["DataListingFactory"] = [addr]
+        contractAddresses[chainId]["DataListingFactory"] = addr
     } else {
-        contractAddresses[chainId] = [{ DataListingFactory: addr }]
+        contractAddresses[chainId] = { DataListingFactory: addr }
     }
     fs.writeFileSync(frontEndContractsFile, JSON.stringify(contractAddresses))
 }
