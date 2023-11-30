@@ -29,6 +29,14 @@ To run the following tests, you have to have a `.env` file configured. Copy the 
 4. Follow the instructions [here](https://docs.chain.link/chainlink-functions/tutorials/api-use-secrets-gist#tutorial) to generate a Github API token
 5. Use the [Google OAuth 2.0 Playground](https://developers.google.com/oauthplayground/) to generate a temporary access token (these only last an hour).
 
+### Frontend Integration
+
+1. Clone frontend repo in the same root directory
+```
+git clone https://github.com/DataMineMarket/Frontend.git
+```
+2. Set `UPDATE_FRONT_END=true` in `.env`
+3. Now, upon deployment, the frontend will be updated with the reveleant contract addresses and ABIs.
 
 ### Local Tests
 The local tests use Chainlink's [functions toolkit](https://github.com/smartcontractkit/functions-toolkit) to simulate functions executions localy.
