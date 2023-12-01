@@ -33,7 +33,9 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
      * @param router The address of the LINK token contract
      * @param provideScript The script which makes an API request and posts the response to IPFS
      * @param tokenKey The public key to encrypt user secret keys
+     * @param dataKey The public key to encrypt users data
      * @param encryptedSecretsUrls Encrypted URLs where to fetch contract secrets
+     * @param dataSource The source of the provided data
      **/
     constructor(
         address router,
@@ -81,7 +83,6 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     /**
      * @notice Send a request to decrypt data
-     * @param source JavaScript source code
      * @param donHostedSecretsSlotID Don hosted secrets slotId
      * @param donHostedSecretsVersion Don hosted secrets version
      * @param args List of arguments accessible from within the source code

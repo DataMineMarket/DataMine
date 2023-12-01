@@ -16,6 +16,7 @@ contract DataListingFactory {
      * @param tokenKey The public key to encrypt user secret keys
      * @param dataKey The public key to encrypt users data
      * @param encryptedSecretsUrls Encrypted URLs where to fetch contract secrets
+     * @param dataSource The source of the provided data
      **/
     function createDataListing(
         address router,
