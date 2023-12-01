@@ -5,9 +5,12 @@ import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers"
 import fs from "fs";
 import {
     simulateScript,
+    decodeResult,
+    ReturnType,
 } from "@chainlink/functions-toolkit";
 import * as crypto from "crypto"
-import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
+import { fromBase64, arrayBufferToBase64, base64ToArrayBuffer } from "../../utils/conversions"
+const { ethers: ethersv5 } = require("ethers-v5")
 
 !(network.name == "hardhat")
     ? describe.skip : describe("Functions Unit Tests", function () {
@@ -15,9 +18,10 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
         let functionsContract: FunctionsConsumer, dataListingFactoryContract: DataListingFactory
         let tokenCryptoKey: CryptoKey, ipfsCryptoKey: CryptoKey
         let dataKey: string
+        let lastCID: string
         let secrets: Record<string, string>
 
-        const googleScript = fs.readFileSync("scripts/provide.js", "utf-8");
+        const provideScript = fs.readFileSync("scripts/provide.js", "utf-8");
         const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
 
         beforeEach(async function () {
@@ -52,8 +56,9 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
 
                 const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
                 const encrypted_ipfs_key = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, ipfsKey)
+                
                 const response = await simulateScript({
-                    source: decryptScript,
+                    source: provideScript,
                     args: [
                         arrayBufferToBase64(encrypted_google_token),
                         dataKey,
@@ -62,20 +67,55 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
                     bytesArgs: [],
                     secrets: secrets,
                 });
-                console.log(response.capturedTerminalOutput)
+
                 const errorString = response.errorString;
                 expect(errorString).to.be.undefined;
-                expect(response.capturedTerminalOutput.startsWith("bafkrei")).to.be.true;
-            })
-            // it("should decrypt the data on IPFS", async function () {
-            //     //  second functions script
-            //     //  .getDataCIDs and pass as args
-            //     const response = await simulateScript({
-            //         source: decryptScript,
-            //         args: [
 
-            //         ]
-            //     })
-            // })
+                const responseBytesHexstring = response.responseBytesHexstring;
+                if (ethersv5.utils.arrayify(responseBytesHexstring).length > 0) {
+                    const decodedResponse = decodeResult(
+                        response.responseBytesHexstring!,
+                        ReturnType.string
+                    );
+                    console.log(
+                        `\n✅ Decoded response: `,
+                        decodedResponse
+                    );
+                    lastCID = decodedResponse as string;
+                    console.log(lastCID);
+                    expect(lastCID.startsWith("bafkrei")).to.be.true;
+                }
+            })
+            it("should decrypt the data from IPFS", async function () {
+                const dataPrivKey = fs.readFileSync("test/helper/dataKey.txt", "utf-8");
+
+                const encodedDataKey = base64ToArrayBuffer(dataPrivKey);
+
+                const importedDataKey = await crypto.subtle.importKey(
+                    "pkcs8",
+                    encodedDataKey,
+                    {
+                        name: "RSA-OAEP",
+                        hash: "SHA-256",
+                    },
+                    true,
+                    ["decrypt"]
+                )
+
+                const resp = await fetch(`https://${lastCID}.ipfs.nftstorage.link/`)
+
+                const encryptedData = (await resp.json()).data
+
+                const data = new TextDecoder().decode(await crypto.subtle.decrypt(
+                    {
+                        name: "RSA-OAEP",
+                    },
+                    importedDataKey,
+                    base64ToArrayBuffer(encryptedData)
+                ))
+
+                console.log(lastCID, data)
+                expect(data.startsWith("{\"session\":[]")).to.be.true;
+            })
         })
     })
