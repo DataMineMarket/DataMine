@@ -44,7 +44,10 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
     log("----------------------------------------------------")
 
-    // Google API Token Encryption
+    const provideScript = fs.readFileSync("scripts/provide.js", "utf-8");
+    const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
+
+    // API Key Encryption
     const tokenKeyPair = await crypto.subtle.generateKey(
         {
             name: "RSA-OAEP",
@@ -61,7 +64,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const tokenPubKey = toBase64(new Uint8Array(exportedTokenPublicKey))
     const tokenPrivKey = toBase64(new Uint8Array(exportedTokenPrivateKey))
 
-    // Google Data Encryption
+    // Data Encryption
     const dataKeyPair = await crypto.subtle.generateKey(
         {
             name: "RSA-OAEP",
@@ -76,30 +79,14 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const exportedDataPrivateKey = await crypto.subtle.exportKey("pkcs8", dataKeyPair.privateKey);
 
     const dataPubKey = toBase64(new Uint8Array(exportedDataPublicKey))
-    const dataPrivKey = toBase64(new Uint8Array(exportedDataPrivateKey))
-
-    // IPFS API Key Encryption
-    const ipfsKeyPair = await crypto.subtle.generateKey(
-        {
-            name: "RSA-OAEP",
-            modulusLength: 4096,
-            publicExponent: new Uint8Array([1, 0, 1]),
-            hash: "SHA-256",
-        },
-        true,
-        ["encrypt", "decrypt"],
-    );
-    const exportedIPFSPublicKey = await crypto.subtle.exportKey("spki", ipfsKeyPair.publicKey);
-    const exportedIPFSPrivateKey = await crypto.subtle.exportKey("pkcs8", ipfsKeyPair.privateKey);
-
-    const ipfsPubKey = toBase64(new Uint8Array(exportedIPFSPublicKey))
-    const ipfsPrivKey = toBase64(new Uint8Array(exportedIPFSPrivateKey))
+    const dataPrivKey = toBase64(new Uint8Array(exportedDataPrivateKey)) // TODO: give to user
 
     const secrets = {
-        token_key: tokenPrivKey,
-        data_key: dataPrivKey,
-        ipfs_key: ipfsPrivKey,
+        token_key: tokenPrivKey
     }
+
+    const dataKeyPath = './test/helper/dataKey.txt';
+    fs.writeFileSync(dataKeyPath, dataPrivKey);
 
     const privateKey = process.env.PRIVATE_KEY; // fetch PRIVATE_KEY
     if (!privateKey)
@@ -178,9 +165,10 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     log("Creating new Data Listing...")
     const createTx = await dataListingFactory.createDataListing(
         functionRouterAddress,
+        provideScript,
+        decryptScript,
         tokenPubKey,
         dataPubKey,
-        ipfsPubKey,
         encryptedSecretsUrls
     )
 

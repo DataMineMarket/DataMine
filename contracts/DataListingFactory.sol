@@ -16,12 +16,13 @@ contract DataListingFactory {
      **/
     function createDataListing(
         address router,
+        string memory provideScript,
+        string memory decryptScript,
         string memory tokenKey,
         string memory dataKey,
-        string memory ipfsKey,
         bytes memory encryptedSecretsUrls
     ) external returns (address) {
-        FunctionsConsumer consumer = new FunctionsConsumer(router, tokenKey, dataKey, ipfsKey, encryptedSecretsUrls);
+        FunctionsConsumer consumer = new FunctionsConsumer(router, provideScript, decryptScript, tokenKey, dataKey, encryptedSecretsUrls);
         s_dataListingContracts.push(consumer);
         emit DataListingCreated(address(consumer));
         return address(consumer);

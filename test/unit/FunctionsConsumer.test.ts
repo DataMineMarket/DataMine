@@ -17,7 +17,7 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
         let dataKey: string
         let secrets: Record<string, string>
 
-        const googleScript = fs.readFileSync("scripts/google.js", "utf-8");
+        const googleScript = fs.readFileSync("scripts/provide.js", "utf-8");
         const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
 
         beforeEach(async function () {
@@ -42,17 +42,6 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
                 ["encrypt"]
             )
             dataKey = await functionsContract.getDataKey();
-            const ipfsKey = await functionsContract.getIPFSKey();
-            ipfsCryptoKey = await crypto.subtle.importKey(
-                "spki",
-                fromBase64(ipfsKey),
-                {
-                    name: "RSA-OAEP",
-                    hash: "SHA-256",
-                },
-                true,
-                ["encrypt"]
-            )
         })
 
         describe("constructor", function () {
@@ -62,9 +51,9 @@ import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
                 const ipfsKey = enc.encode(process.env.NFT_STORAGE_API_TOKEN!);
 
                 const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
-                const encrypted_ipfs_key = await crypto.subtle.encrypt("RSA-OAEP", ipfsCryptoKey, ipfsKey)
+                const encrypted_ipfs_key = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, ipfsKey)
                 const response = await simulateScript({
-                    source: googleScript,
+                    source: decryptScript,
                     args: [
                         arrayBufferToBase64(encrypted_google_token),
                         dataKey,

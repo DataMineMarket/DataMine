@@ -28,11 +28,11 @@ const fromBase64 = (str) => new Uint8Array(
 let enc = new TextEncoder();
 let dec = new TextDecoder();
 
-const private_key = base64ToArrayBuffer(secrets.token_key)
+const token_key = base64ToArrayBuffer(secrets.token_key)
 
 const importedKey = await crypto.subtle.importKey(
   "pkcs8",
-  private_key,
+  token_key,
   {
     name: "RSA-OAEP",
     hash: "SHA-256",
@@ -80,34 +80,20 @@ if (googleFitnessResponse.error) {
 
 const googleFitnessData = enc.encode(JSON.stringify(googleFitnessResponse.data))
 
-const googleFitnessEncrypted = arrayBufferToBase64(await crypto.subtle.encrypt("RSA-OAEP", dataPubKey, googleFitnessData))
+const googleFitnessEncrypted = arrayBufferToBase64(await crypto.subtle.encrypt(
+  "RSA-OAEP", 
+  dataPubKey, 
+  googleFitnessData
+))
 
-// console.log(googleFitnessEncrypted)
+const encrypted_ipfs_key = base64ToArrayBuffer(args[2]);
 
-// TODO: encrypt this
-// const nftAuth = <NFT.storage API Key>
-
-const ipfs_key = base64ToArrayBuffer(secrets.ipfs_key)
-
-const importedIPFSKey = await crypto.subtle.importKey(
-  "pkcs8",
-  ipfs_key,
-  {
-    name: "RSA-OAEP",
-    hash: "SHA-256",
-  },
-  true,
-  ["decrypt"]
-)
-
-const nft_key = base64ToArrayBuffer(args[2]);
-
-const nftAuth = dec.decode(await crypto.subtle.decrypt(
+const ipfsAuth = dec.decode(await crypto.subtle.decrypt(
   {
     name: "RSA-OAEP",
   },
-  importedIPFSKey,
-  nft_key
+  importedKey,
+  encrypted_ipfs_key
 ))
 
 const nftStorageRequest = Functions.makeHttpRequest({
@@ -115,40 +101,15 @@ const nftStorageRequest = Functions.makeHttpRequest({
   method: "POST",
   headers: {
     "Content-Type": "*",
-    Authorization: `Bearer ${nftAuth}`
+    Authorization: `Bearer ${ipfsAuth}`
   },
   data: {"data": googleFitnessEncrypted},
 })
 
 const nftStorageResponse = await nftStorageRequest
 
-console.log(nftStorageResponse.data.value.cid)
-
-/* Decrypt Google Data
-
-const pk = base64ToArrayBuffer(secrets.data_key)
-
-const ik = await crypto.subtle.importKey(
-  "pkcs8",
-  pk,
-  {
-    name: "RSA-OAEP",
-    hash: "SHA-256",
-  },
-  true,
-  ["decrypt"]
-)
-
-const gf = dec.decode(await crypto.subtle.decrypt(
-  {
-    name: "RSA-OAEP",
-  },
-  ik,
-  base64ToArrayBuffer(googleFitnessEncrypted)
-))
-
-console.log(gf)
-*/
-
+if (nftStorageResponse.error) {
+  throw new Error("NFT.storage Error")
+}
 
 return enc.encode(nftStorageResponse.data.value.cid)
