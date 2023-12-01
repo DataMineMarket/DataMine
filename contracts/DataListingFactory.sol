@@ -5,26 +5,37 @@ import {FunctionsConsumer} from "./FunctionsConsumer.sol";
 
 contract DataListingFactory {
     FunctionsConsumer[] public s_dataListingContracts;
+    string[] public s_dataListingSources;
 
-    event DataListingCreated(address indexed dataListing);
+    event DataListingCreated(address indexed dataListing, string indexed dataSource);
 
     /**
      * @notice Create a new DataListing contract
      * @param router The address of the LINK token contract
+     * @param provideScript The script which makes an API request and posts the response to IPFS
      * @param tokenKey The public key to encrypt user secret keys
+     * @param dataKey The public key to encrypt users data
      * @param encryptedSecretsUrls Encrypted URLs where to fetch contract secrets
      **/
     function createDataListing(
         address router,
         string memory provideScript,
-        string memory decryptScript,
         string memory tokenKey,
         string memory dataKey,
-        bytes memory encryptedSecretsUrls
+        bytes memory encryptedSecretsUrls,
+        string memory dataSource
     ) external returns (address) {
-        FunctionsConsumer consumer = new FunctionsConsumer(router, provideScript, decryptScript, tokenKey, dataKey, encryptedSecretsUrls);
+        FunctionsConsumer consumer = new FunctionsConsumer(
+            router,
+            provideScript,
+            tokenKey, 
+            dataKey,
+            encryptedSecretsUrls,
+            dataSource
+        );
         s_dataListingContracts.push(consumer);
-        emit DataListingCreated(address(consumer));
+        s_dataListingSources.push(dataSource);
+        emit DataListingCreated(address(consumer), dataSource);
         return address(consumer);
     }
 
@@ -40,6 +51,13 @@ contract DataListingFactory {
      **/
     function getDataListings() external view returns (FunctionsConsumer[] memory) {
         return s_dataListingContracts;
+    }
+
+    /**
+     * @notice Get the list of DataListing sources
+     **/
+    function getDataListingSources() external view returns (string[] memory) {
+        return s_dataListingSources;
     }
 
     /**

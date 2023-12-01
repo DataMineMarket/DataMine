@@ -39,3 +39,6 @@ export const networkConfig: networkConfigInfo = {
 }
 
 export const developmentChains = ["mumbai"]
+
+export const frontEndContractsFile = "../Frontend/contracts/contractAddresses.json"
+export const frontEndAbiLocation = "../Frontend/contracts/"

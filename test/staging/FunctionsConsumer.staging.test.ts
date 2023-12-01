@@ -56,7 +56,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 true,
                 ["encrypt"]
             )
-            dataKey = await functionsContract.getDataKey(); // TODO: import key like the others?
+            dataKey = await functionsContract.getDataKey();
         })
         describe("constructor", function () {
             it("should successfully call google API", async function () {

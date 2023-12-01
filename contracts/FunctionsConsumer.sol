@@ -18,11 +18,11 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     mapping(bytes32 requestId => RequestType requestType) private s_requests;
 
     string public s_provideScript;
-    string public s_decryptScript;
 
     string public s_tokenKey;
     string public s_dataKey;
     bytes public s_encryptedSecretsUrls;
+    string public s_dataSource;
 
     error UnexpectedRequestID(bytes32 requestId);
 
@@ -31,22 +31,23 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     /**
      * @notice Initialize the contract with a specified address for the LINK token
      * @param router The address of the LINK token contract
+     * @param provideScript The script which makes an API request and posts the response to IPFS
      * @param tokenKey The public key to encrypt user secret keys
      * @param encryptedSecretsUrls Encrypted URLs where to fetch contract secrets
      **/
     constructor(
         address router,
         string memory provideScript,
-        string memory decryptScript,
         string memory tokenKey,
         string memory dataKey,
-        bytes memory encryptedSecretsUrls
+        bytes memory encryptedSecretsUrls,
+        string memory dataSource
     ) FunctionsClient(router) ConfirmedOwner(tx.origin) {
         s_provideScript = provideScript;
-        s_decryptScript = decryptScript;
         s_tokenKey = tokenKey;
         s_dataKey = dataKey;
         s_encryptedSecretsUrls = encryptedSecretsUrls;
+        s_dataSource = dataSource;
     }
 
     /**
@@ -169,5 +170,9 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     function getDataCIDs() external view returns (string[] memory) {
         return s_dataCIDs;
+    }
+
+    function getDataSource() external view returns (string memory) {
+        return s_dataSource;
     }
 }
