@@ -56,7 +56,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
 
                 const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
                 const encrypted_ipfs_key = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, ipfsKey)
-                
+
                 const response = await simulateScript({
                     source: provideScript,
                     args: [
