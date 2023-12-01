@@ -44,7 +44,11 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
     log("----------------------------------------------------")
 
-    const keyPair = await crypto.subtle.generateKey(
+    const provideScript = fs.readFileSync("scripts/provide.js", "utf-8");
+    const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
+
+    // API Key Encryption
+    const tokenKeyPair = await crypto.subtle.generateKey(
         {
             name: "RSA-OAEP",
             modulusLength: 4096,
@@ -54,15 +58,35 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
         true,
         ["encrypt", "decrypt"],
     );
-    const exportedPublicKey = await crypto.subtle.exportKey("spki", keyPair.publicKey);
-    const exportedPrivateKey = await crypto.subtle.exportKey("pkcs8", keyPair.privateKey);
+    const exportedTokenPublicKey = await crypto.subtle.exportKey("spki", tokenKeyPair.publicKey);
+    const exportedTokenPrivateKey = await crypto.subtle.exportKey("pkcs8", tokenKeyPair.privateKey);
 
-    const pubKey = toBase64(new Uint8Array(exportedPublicKey))
-    const privKey = toBase64(new Uint8Array(exportedPrivateKey))
+    const tokenPubKey = toBase64(new Uint8Array(exportedTokenPublicKey))
+    const tokenPrivKey = toBase64(new Uint8Array(exportedTokenPrivateKey))
+
+    // Data Encryption
+    const dataKeyPair = await crypto.subtle.generateKey(
+        {
+            name: "RSA-OAEP",
+            modulusLength: 4096,
+            publicExponent: new Uint8Array([1, 0, 1]),
+            hash: "SHA-256",
+        },
+        true,
+        ["encrypt", "decrypt"],
+    );
+    const exportedDataPublicKey = await crypto.subtle.exportKey("spki", dataKeyPair.publicKey);
+    const exportedDataPrivateKey = await crypto.subtle.exportKey("pkcs8", dataKeyPair.privateKey);
+
+    const dataPubKey = toBase64(new Uint8Array(exportedDataPublicKey))
+    const dataPrivKey = toBase64(new Uint8Array(exportedDataPrivateKey)) // TODO: give to user
 
     const secrets = {
-        private_key: privKey,
+        token_key: tokenPrivKey
     }
+
+    const dataKeyPath = './test/helper/dataKey.txt';
+    fs.writeFileSync(dataKeyPath, dataPrivKey);
 
     const privateKey = process.env.PRIVATE_KEY; // fetch PRIVATE_KEY
     if (!privateKey)
@@ -141,7 +165,9 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     log("Creating new Data Listing...")
     const createTx = await dataListingFactory.createDataListing(
         functionRouterAddress,
-        pubKey,
+        provideScript,
+        tokenPubKey,
+        dataPubKey,
         encryptedSecretsUrls,
         "GoogleFit"
     )

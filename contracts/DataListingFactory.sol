@@ -12,18 +12,25 @@ contract DataListingFactory {
     /**
      * @notice Create a new DataListing contract
      * @param router The address of the LINK token contract
-     * @param publicKey The public key to encrypt user secret keys
+     * @param provideScript The script which makes an API request and posts the response to IPFS
+     * @param tokenKey The public key to encrypt user secret keys
+     * @param dataKey The public key to encrypt users data
      * @param encryptedSecretsUrls Encrypted URLs where to fetch contract secrets
+     * @param dataSource The source of the provided data
      **/
     function createDataListing(
         address router,
-        string memory publicKey,
+        string memory provideScript,
+        string memory tokenKey,
+        string memory dataKey,
         bytes memory encryptedSecretsUrls,
         string memory dataSource
     ) external returns (address) {
         FunctionsConsumer consumer = new FunctionsConsumer(
             router,
-            publicKey,
+            provideScript,
+            tokenKey, 
+            dataKey,
             encryptedSecretsUrls,
             dataSource
         );

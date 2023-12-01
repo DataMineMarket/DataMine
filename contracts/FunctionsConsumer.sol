@@ -12,7 +12,15 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     bytes public s_lastResponse;
     bytes public s_lastError;
 
-    string public s_publicKey;
+    string[] public s_dataCIDs;
+
+    enum RequestType { PROVIDE, DECRYPT }
+    mapping(bytes32 requestId => RequestType requestType) private s_requests;
+
+    string public s_provideScript;
+
+    string public s_tokenKey;
+    string public s_dataKey;
     bytes public s_encryptedSecretsUrls;
     string public s_dataSource;
 
@@ -23,30 +31,65 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     /**
      * @notice Initialize the contract with a specified address for the LINK token
      * @param router The address of the LINK token contract
-     * @param publicKey The public key to encrypt user secret keys
+     * @param provideScript The script which makes an API request and posts the response to IPFS
+     * @param tokenKey The public key to encrypt user secret keys
+     * @param dataKey The public key to encrypt users data
      * @param encryptedSecretsUrls Encrypted URLs where to fetch contract secrets
+     * @param dataSource The source of the provided data
      **/
     constructor(
         address router,
-        string memory publicKey,
+        string memory provideScript,
+        string memory tokenKey,
+        string memory dataKey,
         bytes memory encryptedSecretsUrls,
         string memory dataSource
     ) FunctionsClient(router) ConfirmedOwner(tx.origin) {
-        s_publicKey = publicKey;
+        s_provideScript = provideScript;
+        s_tokenKey = tokenKey;
+        s_dataKey = dataKey;
         s_encryptedSecretsUrls = encryptedSecretsUrls;
         s_dataSource = dataSource;
     }
 
     /**
-     * @notice Send a simple request
-     * @param source JavaScript source code
+     * @notice Send a request to provide data
      * @param donHostedSecretsSlotID Don hosted secrets slotId
      * @param donHostedSecretsVersion Don hosted secrets version
      * @param args List of arguments accessible from within the source code
      * @param bytesArgs Array of bytes arguments, represented as hex strings
      * @param subscriptionId Billing ID
      */
-    function sendRequest(
+    function provideData(
+        uint8 donHostedSecretsSlotID,
+        uint64 donHostedSecretsVersion,
+        string[] memory args,
+        bytes[] memory bytesArgs,
+        uint64 subscriptionId,
+        uint32 gasLimit,
+        bytes32 donID
+    ) external onlyOwner {
+        FunctionsRequest.Request memory req;
+        req.initializeRequestForInlineJavaScript(s_provideScript);
+        if (s_encryptedSecretsUrls.length > 0) req.addSecretsReference(s_encryptedSecretsUrls);
+        else if (donHostedSecretsVersion > 0) {
+            req.addDONHostedSecrets(donHostedSecretsSlotID, donHostedSecretsVersion);
+        }
+        if (args.length > 0) req.setArgs(args);
+        if (bytesArgs.length > 0) req.setBytesArgs(bytesArgs);
+        s_lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionId, gasLimit, donID);
+        s_requests[s_lastRequestId] = RequestType.PROVIDE;
+    }
+
+    /**
+     * @notice Send a request to decrypt data
+     * @param donHostedSecretsSlotID Don hosted secrets slotId
+     * @param donHostedSecretsVersion Don hosted secrets version
+     * @param args List of arguments accessible from within the source code
+     * @param bytesArgs Array of bytes arguments, represented as hex strings
+     * @param subscriptionId Billing ID
+     */
+    function decryptData(
         string memory source,
         uint8 donHostedSecretsSlotID,
         uint64 donHostedSecretsVersion,
@@ -55,7 +98,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         uint64 subscriptionId,
         uint32 gasLimit,
         bytes32 donID
-    ) external onlyOwner returns (bytes32 requestId) {
+    ) external onlyOwner {
         FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(source);
         if (s_encryptedSecretsUrls.length > 0) req.addSecretsReference(s_encryptedSecretsUrls);
@@ -65,7 +108,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         if (args.length > 0) req.setArgs(args);
         if (bytesArgs.length > 0) req.setBytesArgs(bytesArgs);
         s_lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionId, gasLimit, donID);
-        return s_lastRequestId;
+        s_requests[s_lastRequestId] = RequestType.DECRYPT;
     }
 
     /**
@@ -103,15 +146,31 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         }
         s_lastResponse = response;
         s_lastError = err;
+        
+        RequestType requestType = s_requests[requestId];
+        string memory responseString = string(response);
+
+        if (err.length == 0 && requestType == RequestType.PROVIDE) {
+            s_dataCIDs.push(responseString);
+        } 
+
         emit Response(requestId, s_lastResponse, s_lastError);
     }
 
-    function getPublicKey() external view returns (string memory) {
-        return s_publicKey;
+    function getTokenKey() external view returns (string memory) {
+        return s_tokenKey;
+    }
+
+    function getDataKey() external view returns (string memory) {
+        return s_dataKey;
     }
 
     function getEncryptedSecretsUrls() external view returns (bytes memory) {
         return s_encryptedSecretsUrls;
+    }
+
+    function getDataCIDs() external view returns (string[] memory) {
+        return s_dataCIDs;
     }
 
     function getDataSource() external view returns (string memory) {

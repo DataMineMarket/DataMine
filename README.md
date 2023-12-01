@@ -28,6 +28,7 @@ To run the following tests, you have to have a `.env` file configured. Copy the 
 3. Get [Coinmarketcap API Key](https://coinmarketcap.com/api/)
 4. Follow the instructions [here](https://docs.chain.link/chainlink-functions/tutorials/api-use-secrets-gist#tutorial) to generate a Github API token
 5. Use the [Google OAuth 2.0 Playground](https://developers.google.com/oauthplayground/) to generate a temporary access token (these only last an hour).
+6. Get a [NFT.storage API Key](https://nft.storage/manage)
 
 ### Frontend Integration
 

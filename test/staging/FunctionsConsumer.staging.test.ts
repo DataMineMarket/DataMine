@@ -5,7 +5,7 @@ import { DataListingFactory, FunctionsConsumer } from "../../typechain-types"
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers"
 import fs from "fs";
 import * as crypto from "crypto"
-import { fromBase64, arrayBufferToBase64 } from "../../utils/conversions"
+import { fromBase64, arrayBufferToBase64, base64ToArrayBuffer } from "../../utils/conversions"
 import {
     SubscriptionManager,
     SecretsManager,
@@ -22,15 +22,19 @@ const { ethers: ethersv5 } = require("ethers-v5")
 
 !developmentChains.includes(network.name)
     ? describe.skip
-    : describe("PromiseFund Staging Tests", function () {
+    : describe("DataNexus Staging Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
         let functionsContract: FunctionsConsumer, functionsConsumer: FunctionsConsumer
-        let pubKey: CryptoKey
+        let tokenCryptoKey: CryptoKey
+        let dataKey: string
         let secrets: Record<string, string>
+        let cidArray: string[]
+        let lastCID: string
 
         const chainId = network.config.chainId || 31337
 
-        const source = fs.readFileSync("scripts/source.js", "utf-8");
+        const provideScript = fs.readFileSync("scripts/provide.js", "utf-8");
+        const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
 
         beforeEach(async function () {
             accounts = await ethers.getSigners()
@@ -41,10 +45,10 @@ const { ethers: ethersv5 } = require("ethers-v5")
             functionsContract = await ethers.getContractAt("FunctionsConsumer", functionsConsumerAddress) as unknown as FunctionsConsumer
             functionsConsumer = functionsContract.connect(deployer)
 
-            const publicKey = await functionsConsumer.getPublicKey();
-            pubKey = await crypto.subtle.importKey(
+            const tokenKey = await functionsContract.getTokenKey();
+            tokenCryptoKey = await crypto.subtle.importKey(
                 "spki",
-                fromBase64(publicKey),
+                fromBase64(tokenKey),
                 {
                     name: "RSA-OAEP",
                     hash: "SHA-256",
@@ -52,19 +56,25 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 true,
                 ["encrypt"]
             )
+            dataKey = await functionsContract.getDataKey();
         })
         describe("constructor", function () {
             it("should successfully call google API", async function () {
                 let enc = new TextEncoder();
 
-                const message = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
-                const encrypted_token = await crypto.subtle.encrypt("RSA-OAEP", pubKey, message)
+                const googleToken = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
+                const ipfsKey = enc.encode(process.env.NFT_STORAGE_API_TOKEN!);
+
+                const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
+                const encrypted_ipfs_key = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, ipfsKey)
+
                 const args = [
-                    arrayBufferToBase64(encrypted_token),
+                    arrayBufferToBase64(encrypted_google_token),
+                    dataKey,
+                    arrayBufferToBase64(encrypted_ipfs_key),
                 ]
 
-                const transaction = await functionsConsumer.sendRequest(
-                    source, // source
+                const transaction = await functionsConsumer.provideData(
                     0, // don hosted secrets - slot ID - empty in this example
                     0, // don hosted secrets - version - empty in this example
                     args,
@@ -112,7 +122,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                 `\n✅ Request ${response.requestId
                                 } successfully fulfilled. Cost is ${ethersv5.utils.formatEther(
                                     response.totalCostInJuels
-                                )} LINK.Complete reponse: `,
+                                )} LINK. Complete reponse: `,
                                 response
                             );
                         } else if (fulfillmentCode === FulfillmentCode.USER_CALLBACK_ERROR) {
@@ -120,7 +130,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                 `\n⚠️ Request ${response.requestId
                                 } fulfilled. However, the consumer contract callback failed. Cost is ${ethersv5.utils.formatEther(
                                     response.totalCostInJuels
-                                )} LINK.Complete reponse: `,
+                                )} LINK. Complete reponse: `,
                                 response
                             );
                         } else {
@@ -128,7 +138,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                 `\n❌ Request ${response.requestId
                                 } not fulfilled. Code: ${fulfillmentCode}. Cost is ${ethersv5.utils.formatEther(
                                     response.totalCostInJuels
-                                )} LINK.Complete reponse: `,
+                                )} LINK. Complete reponse: `,
                                 response
                             );
                         }
@@ -147,13 +157,53 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                     `\n✅ Decoded response: `,
                                     decodedResponse
                                 );
-                                assert.equal(decodedResponse, "success")
+                                lastCID = decodedResponse as string;
+                                console.log(lastCID);
+                                expect(lastCID.startsWith("bafkrei")).to.be.true;
                             }
                         }
                     } catch (error) {
                         assert.fail("Error listening for response", error)
                     }
                 })();
+            })
+            it("should store the CID", async function () {
+                cidArray = await functionsConsumer.getDataCIDs();
+                console.log("Last CID:", cidArray[cidArray.length - 1])
+                expect(cidArray[cidArray.length - 1]).to.equal(lastCID)
+            })
+            it("should decrypt the data on IPFS", async function () {
+                const dataPrivKey = fs.readFileSync("test/helper/dataKey.txt", "utf-8");
+
+                const encodedDataKey = base64ToArrayBuffer(dataPrivKey);
+
+                const importedDataKey = await crypto.subtle.importKey(
+                    "pkcs8",
+                    encodedDataKey,
+                    {
+                        name: "RSA-OAEP",
+                        hash: "SHA-256",
+                    },
+                    true,
+                    ["decrypt"]
+                )
+
+                for (const cid of cidArray) {
+                    const resp = await fetch(`https://${cid}.ipfs.nftstorage.link/`)
+
+                    const encryptedData = (await resp.json()).data
+
+                    const data = new TextDecoder().decode(await crypto.subtle.decrypt(
+                        {
+                            name: "RSA-OAEP",
+                        },
+                        importedDataKey,
+                        base64ToArrayBuffer(encryptedData)
+                    ))
+
+                    console.log(cid, data)
+                    expect(data.startsWith("{\"session\":[]")).to.be.true;
+                }
             })
         })
     })
