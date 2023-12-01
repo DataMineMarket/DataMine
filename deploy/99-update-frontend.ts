@@ -4,6 +4,7 @@ import fs from "fs"
 import { network, ethers } from "hardhat"
 import { DeployFunction } from "hardhat-deploy/types"
 import { HardhatRuntimeEnvironment } from "hardhat/types"
+import { DataListingFactory } from "../typechain-types"
 
 const updateFrontEnd: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
     if (process.env.UPDATE_FRONT_END) {
@@ -15,8 +16,10 @@ const updateFrontEnd: DeployFunction = async function (hre: HardhatRuntimeEnviro
 }
 
 async function updateAbi() {
-    const dataListingFactory = await ethers.getContract("DataListingFactory")
-    const functionsConsumer = await ethers.getContract("FunctionsConsumer")
+    const dataListingFactory: DataListingFactory = await ethers.getContract("DataListingFactory")
+
+    const functionsConsumerAddress = await dataListingFactory.getDataListing(0)
+    const functionsConsumer = await ethers.getContractAt("FunctionsConsumer", functionsConsumerAddress)
 
     fs.writeFileSync(
         `${frontEndAbiLocation}DataListingFactory.json`,
