@@ -82,7 +82,8 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const dataPrivKey = toBase64(new Uint8Array(exportedDataPrivateKey)) // TODO: give to user
 
     const secrets = {
-        token_key: tokenPrivKey
+        token_key: tokenPrivKey,
+        ipfsAuth: process.env.NFT_STORAGE_API_TOKEN!,
     }
 
     const dataKeyPath = './test/helper/dataKey.txt';

@@ -52,17 +52,14 @@ const { ethers: ethersv5 } = require("ethers-v5")
             it("should successfully call google API", async function () {
                 let enc = new TextEncoder();
                 const googleToken = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
-                const ipfsKey = enc.encode(process.env.NFT_STORAGE_API_TOKEN!);
 
                 const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
-                const encrypted_ipfs_key = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, ipfsKey)
-
+                
                 const response = await simulateScript({
                     source: provideScript,
                     args: [
                         arrayBufferToBase64(encrypted_google_token),
                         dataKey,
-                        arrayBufferToBase64(encrypted_ipfs_key)
                     ],
                     bytesArgs: [],
                     secrets: secrets,

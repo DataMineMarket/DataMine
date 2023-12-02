@@ -86,22 +86,12 @@ const googleFitnessEncrypted = arrayBufferToBase64(await crypto.subtle.encrypt(
   googleFitnessData
 ))
 
-const encrypted_ipfs_key = base64ToArrayBuffer(args[2]);
-
-const ipfsAuth = dec.decode(await crypto.subtle.decrypt(
-  {
-    name: "RSA-OAEP",
-  },
-  importedKey,
-  encrypted_ipfs_key
-))
-
 const nftStorageRequest = Functions.makeHttpRequest({
   url: "https://api.nft.storage/upload",
   method: "POST",
   headers: {
     "Content-Type": "*",
-    Authorization: `Bearer ${ipfsAuth}`
+    Authorization: `Bearer ${secrets.ipfsAuth}`
   },
   data: {"data": googleFitnessEncrypted},
 })
