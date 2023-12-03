@@ -29,7 +29,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
         let dataKey: string
         let secrets: Record<string, string>
         let cidArray: string[]
-        let lastCID: string
+        let lastCIDs: string
 
         const chainId = network.config.chainId || 31337
 
@@ -106,6 +106,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                 .listenForResponseFromTransaction(transaction.hash)
                                 .then((response: any) => {
                                     resolve(response); // Resolves once the request has been fulfilled.
+                                    console.log("RESPONSE", response)
                                 })
                                 .catch((error: any) => {
                                     reject(error); // Indicate that an error occurred while waiting for fulfillment.
@@ -124,7 +125,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                             );
                         } else if (fulfillmentCode === FulfillmentCode.USER_CALLBACK_ERROR) {
                             console.log(
-                                `\n⚠️ Request ${response.requestId
+                                `\n Request ${response.requestId
                                 } fulfilled. However, the consumer contract callback failed. Cost is ${ethersv5.utils.formatEther(
                                     response.totalCostInJuels
                                 )} LINK. Complete reponse: `,
@@ -154,9 +155,9 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                     `\n✅ Decoded response: `,
                                     decodedResponse
                                 );
-                                lastCID = decodedResponse as string;
-                                console.log(lastCID);
-                                expect(lastCID.startsWith("bafkrei")).to.be.true;
+                                lastCIDs = decodedResponse as string;
+                                console.log(lastCIDs);
+                                expect(lastCIDs.startsWith("bafkrei")).to.be.true;
                             }
                         }
                     } catch (error) {
@@ -164,10 +165,16 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     }
                 })();
             })
-            it("should store the CID", async function () {
+            it("should store the CIDs", async function () {
                 cidArray = await functionsConsumer.getDataCIDs();
-                console.log("Last CID:", cidArray[cidArray.length - 1])
-                expect(cidArray[cidArray.length - 1]).to.equal(lastCID)
+                const lastError = await functionsConsumer.getLastError();
+                const s_requests = await functionsConsumer.s_lastRequestId();
+                console.log("lastError", lastError)
+                console.log("lastRequestId", s_requests)
+                console.log("lsat response", await functionsConsumer.s_lastResponse())
+                console.log(cidArray)
+                console.log("Last CIDs:", cidArray[cidArray.length - 1])
+                expect(cidArray[cidArray.length - 1]).to.equal(lastCIDs)
             })
             it("should decrypt the data on IPFS", async function () {
                 const dataPrivKey = fs.readFileSync("test/helper/dataKey.txt", "utf-8");
@@ -185,21 +192,59 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     ["decrypt"]
                 )
 
-                for (const cid of cidArray) {
-                    const resp = await fetch(`https://${cid}.ipfs.nftstorage.link/`)
+                // const cidBundle = await fetch()
 
-                    const encryptedData = (await resp.json()).data
+                for (const bundleCID of cidArray) {
+                    // const cids = cidsRaw.split(",");
+                    const bundleResponse = await fetch(`https://${bundleCID}.ipfs.nftstorage.link/`)
+                    const bundle = await bundleResponse.json()
 
-                    const data = new TextDecoder().decode(await crypto.subtle.decrypt(
+                    const aesKeyCid = bundle.aesKey
+                    const aesKeyResponse = await fetch(`https://${aesKeyCid}.ipfs.nftstorage.link/`)
+                    const aesKeyData = await aesKeyResponse.json()
+                    const encryptedAesKey = aesKeyData.aesKey
+                    const encryptedIv = aesKeyData.iv
+
+                    const dataCids = bundle.dataCids
+                    let encryptedData = ""
+                    for (const cid of dataCids) {
+                        const resp = await fetch(`https://${cid}.ipfs.nftstorage.link/`)
+
+                        const data = (await resp.json()).data
+
+                        encryptedData += data
+                    }
+                    const decryptedAesKey = await crypto.subtle.decrypt(
                         {
                             name: "RSA-OAEP",
                         },
                         importedDataKey,
-                        base64ToArrayBuffer(encryptedData)
-                    ))
+                        base64ToArrayBuffer(encryptedAesKey)
+                    )
 
-                    console.log(cid, data)
-                    expect(data.startsWith("{\"session\":[]")).to.be.true;
+                    const aesKey = await crypto.subtle.importKey(
+                        "raw",
+                        decryptedAesKey,
+                        { name: "AES-GCM", length: 256 },
+                        true,
+                        ["decrypt"]
+                    );
+
+                    const iv = await crypto.subtle.decrypt(
+                        {
+                            name: "RSA-OAEP",
+                        },
+                        importedDataKey,
+                        base64ToArrayBuffer(encryptedIv)
+                    )
+                    const decryptedData = new TextDecoder().decode(await crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: new Uint8Array(iv) },
+                        aesKey,
+                        base64ToArrayBuffer(encryptedData)
+                    ));
+
+                    console.log("decrypted Data:", decryptedData)
+                    expect(decryptedData.startsWith("{\"session\":[")).to.be.true;
                 }
             })
         })

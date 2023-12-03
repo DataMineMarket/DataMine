@@ -102,7 +102,6 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 )
 
                 const aesKeyResponse = await fetch(`https://${cids[0]}.ipfs.nftstorage.link/`)
-                const encryptedDataResponse = await fetch(`https://${cids[1]}.ipfs.nftstorage.link/`)
                 const aesKeyData = await aesKeyResponse.json()
                 const encryptedAesKey = aesKeyData.aesKey
                 const encryptedIv = aesKeyData.iv

@@ -152,4 +152,24 @@ if (aesKeyStorageResponse.error) {
     throw new Error("Aes Key: NFT.storage Error")
 }
 
-return enc.encode([aesKeyStorageResponse.data.value.cid, ...dataCids])
+const bundleStorageRequest = Functions.makeHttpRequest({
+  url: "https://api.nft.storage/upload",
+  method: "POST",
+  headers: {
+      "Content-Type": "*",
+      Authorization: `Bearer ${secrets.ipfsAuth}`,
+  },
+  data: {
+      aesKey: aesKeyStorageResponse.data.value.cid,
+      dataCids: dataCids,
+  },
+})
+
+const bundleStorageResponse = await bundleStorageRequest
+
+if (bundleStorageResponse.error) {
+  console.log(bundleStorageResponse)
+  throw new Error("Bundle: NFT.storage Error")
+}
+
+return enc.encode(bundleStorageResponse.data.value.cid)
