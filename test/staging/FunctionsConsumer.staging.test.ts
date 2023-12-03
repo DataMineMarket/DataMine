@@ -29,7 +29,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
         let dataKey: string
         let secrets: Record<string, string>
         let cidArray: string[]
-        let lastCIDs: string
+        let lastCID: string
 
         const chainId = network.config.chainId || 31337
 
@@ -106,7 +106,6 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                 .listenForResponseFromTransaction(transaction.hash)
                                 .then((response: any) => {
                                     resolve(response); // Resolves once the request has been fulfilled.
-                                    console.log("RESPONSE", response)
                                 })
                                 .catch((error: any) => {
                                     reject(error); // Indicate that an error occurred while waiting for fulfillment.
@@ -155,9 +154,9 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                     `\n✅ Decoded response: `,
                                     decodedResponse
                                 );
-                                lastCIDs = decodedResponse as string;
-                                console.log(lastCIDs);
-                                expect(lastCIDs.startsWith("bafkrei")).to.be.true;
+                                lastCID = decodedResponse as string;
+                                console.log(lastCID);
+                                expect(lastCID.startsWith("bafkrei")).to.be.true;
                             }
                         }
                     } catch (error) {
@@ -167,14 +166,8 @@ const { ethers: ethersv5 } = require("ethers-v5")
             })
             it("should store the CIDs", async function () {
                 cidArray = await functionsConsumer.getDataCIDs();
-                const lastError = await functionsConsumer.getLastError();
                 const s_requests = await functionsConsumer.s_lastRequestId();
-                console.log("lastError", lastError)
-                console.log("lastRequestId", s_requests)
-                console.log("lsat response", await functionsConsumer.s_lastResponse())
-                console.log(cidArray)
-                console.log("Last CIDs:", cidArray[cidArray.length - 1])
-                expect(cidArray[cidArray.length - 1]).to.equal(lastCIDs)
+                expect(cidArray[cidArray.length - 1]).to.equal(lastCID)
             })
             it("should decrypt the data on IPFS", async function () {
                 const dataPrivKey = fs.readFileSync("test/helper/dataKey.txt", "utf-8");
@@ -194,18 +187,13 @@ const { ethers: ethersv5 } = require("ethers-v5")
 
                 // const cidBundle = await fetch()
 
-                for (const bundleCID of cidArray) {
-                    // const cids = cidsRaw.split(",");
-                    const bundleResponse = await fetch(`https://${bundleCID}.ipfs.nftstorage.link/`)
-                    const bundle = await bundleResponse.json()
+                for (const cid of cidArray) {
+                    const bundledResponse = await fetch(`https://${cid}.ipfs.nftstorage.link/`)
+                    const bundledData = await bundledResponse.json()
+                    const encryptedAesKey = bundledData.aesKey
+                    const encryptedIv = bundledData.iv
+                    const dataCids = bundledData.dataCids
 
-                    const aesKeyCid = bundle.aesKey
-                    const aesKeyResponse = await fetch(`https://${aesKeyCid}.ipfs.nftstorage.link/`)
-                    const aesKeyData = await aesKeyResponse.json()
-                    const encryptedAesKey = aesKeyData.aesKey
-                    const encryptedIv = aesKeyData.iv
-
-                    const dataCids = bundle.dataCids
                     let encryptedData = ""
                     for (const cid of dataCids) {
                         const resp = await fetch(`https://${cid}.ipfs.nftstorage.link/`)

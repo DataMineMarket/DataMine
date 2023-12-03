@@ -18,7 +18,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
         let functionsContract: FunctionsConsumer, dataListingFactoryContract: DataListingFactory
         let tokenCryptoKey: CryptoKey, ipfsCryptoKey: CryptoKey
         let dataKey: string
-        let lastCIDs: string
+        let lastCID: string
         let secrets: Record<string, string>
 
         const provideScript = fs.readFileSync("scripts/provide.js", "utf-8");
@@ -79,16 +79,15 @@ const { ethers: ethersv5 } = require("ethers-v5")
                         `\n✅ Decoded response: `,
                         decodedResponse
                     );
-                    lastCIDs = decodedResponse as string;
-                    expect(lastCIDs.startsWith("bafkrei")).to.be.true;
+                    lastCID = decodedResponse as string;
+                    expect(lastCID.startsWith("bafkrei")).to.be.true;
                 }
             })
             it("should decrypt the data from IPFS", async function () {
                 const dataPrivKey = fs.readFileSync("test/helper/dataKey.txt", "utf-8");
 
                 const encodedDataKey = base64ToArrayBuffer(dataPrivKey);
-
-                const cids = lastCIDs.split(",");
+                console.log('lastCID', lastCID)
 
                 const importedDataKey = await crypto.subtle.importKey(
                     "pkcs8",
@@ -101,13 +100,15 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     ["decrypt"]
                 )
 
-                const aesKeyResponse = await fetch(`https://${cids[0]}.ipfs.nftstorage.link/`)
+                const aesKeyResponse = await fetch(`https://${lastCID}.ipfs.nftstorage.link/`)
                 const aesKeyData = await aesKeyResponse.json()
                 const encryptedAesKey = aesKeyData.aesKey
                 const encryptedIv = aesKeyData.iv
+                const cids = aesKeyData.dataCids
 
                 let encryptedData = ""
-                for (let i = 1; i < cids.length; i++) {
+                for (let i = 0; i < cids.length; i++) {
+                    console.log(cids[i])
                     const resp = await fetch(`https://${cids[i]}.ipfs.nftstorage.link/`)
 
                     const data = (await resp.json()).data
