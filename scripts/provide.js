@@ -17,6 +17,17 @@ function arrayBufferToBase64(buffer) {
     return window.btoa(binary)
 }
 
+function splitBase64IntoChunks(base64String, byteChunkSize) {
+    // Calculate the number of Base64 characters per chunk of binary data
+    const chunks = []
+    for (let i = 0; i < base64String.length; i += byteChunkSize) {
+        const chunk = base64String.substring(i, i + byteChunkSize)
+        chunks.push(chunk)
+    }
+
+    return chunks
+}
+
 const toBase64 = (arr) => btoa(String.fromCodePoint(...arr))
 
 const fromBase64 = (str) =>
@@ -96,17 +107,30 @@ const encryptedData = await crypto.subtle.encrypt(
 const exportedAesKey = await crypto.subtle.exportKey("raw", aesKey)
 const encryptedAesKey = await crypto.subtle.encrypt("RSA-OAEP", dataPubKey, exportedAesKey)
 const encryptedIv = await crypto.subtle.encrypt("RSA-OAEP", dataPubKey, iv)
-const dataStorageRequest = Functions.makeHttpRequest({
-    url: "https://api.nft.storage/upload",
-    method: "POST",
-    headers: {
-        "Content-Type": "*",
-        Authorization: `Bearer ${secrets.ipfsAuth}`,
-    },
-    data: {
-        data: arrayBufferToBase64(encryptedData),
-    },
-})
+const chunkData = splitBase64IntoChunks(arrayBufferToBase64(encryptedData), 2000)
+
+const dataCids = []
+for (let i = 0; i < chunkData.length; i++) {
+    const dataStorageRequest = Functions.makeHttpRequest({
+        url: "https://api.nft.storage/upload",
+        method: "POST",
+        headers: {
+            "Content-Type": "*",
+            Authorization: `Bearer ${secrets.ipfsAuth}`,
+        },
+        data: {
+            data: chunkData[i],
+        },
+    })
+    const dataStorageResponse = await dataStorageRequest
+
+    if (dataStorageResponse.error) {
+        console.log(dataStorageResponse)
+        throw new Error("Data Storage: NFT.storage Error")
+    }
+
+    dataCids.push(dataStorageResponse.data.value.cid)
+}
 
 const aesKeyStorageRequest = Functions.makeHttpRequest({
     url: "https://api.nft.storage/upload",
@@ -121,18 +145,11 @@ const aesKeyStorageRequest = Functions.makeHttpRequest({
     },
 })
 
-const dataStorageResponse = await dataStorageRequest
 const aesKeyStorageResponse = await aesKeyStorageRequest
-
-if (dataStorageResponse.error) {
-    console.log(dataStorageResponse)
-    throw new Error("Data Storage: NFT.storage Error")
-}
 
 if (aesKeyStorageResponse.error) {
     console.log(aesKeyStorageResponse)
     throw new Error("Aes Key: NFT.storage Error")
 }
-console.log([aesKeyStorageResponse.data.value.cid, dataStorageResponse.data.value.cid])
 
-return enc.encode([aesKeyStorageResponse.data.value.cid, dataStorageResponse.data.value.cid])
+return enc.encode([aesKeyStorageResponse.data.value.cid, ...dataCids])

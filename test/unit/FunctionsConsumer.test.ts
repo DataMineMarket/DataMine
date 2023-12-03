@@ -80,7 +80,6 @@ const { ethers: ethersv5 } = require("ethers-v5")
                         decodedResponse
                     );
                     lastCIDs = decodedResponse as string;
-                    console.log(lastCIDs);
                     expect(lastCIDs.startsWith("bafkrei")).to.be.true;
                 }
             })
@@ -107,7 +106,15 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 const aesKeyData = await aesKeyResponse.json()
                 const encryptedAesKey = aesKeyData.aesKey
                 const encryptedIv = aesKeyData.iv
-                const encryptedData = (await encryptedDataResponse.json()).data
+
+                let encryptedData = ""
+                for (let i = 1; i < cids.length; i++) {
+                    const resp = await fetch(`https://${cids[i]}.ipfs.nftstorage.link/`)
+
+                    const data = (await resp.json()).data
+
+                    encryptedData += data
+                }
 
                 const decryptedAesKey = await crypto.subtle.decrypt(
                     {
@@ -132,7 +139,6 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     importedDataKey,
                     base64ToArrayBuffer(encryptedIv)
                 )
-                console.log('encrytpedData', encryptedData)
                 // Decrypt the data
                 const decryptedData = new TextDecoder().decode(await crypto.subtle.decrypt(
                     { name: "AES-GCM", iv: new Uint8Array(iv) },
@@ -142,7 +148,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
 
 
                 console.log("decryptedData: ", decryptedData)
-                expect(decryptedData.startsWith("{\"session\":[]")).to.be.true;
+                expect(decryptedData.startsWith("{\"session\":[")).to.be.true;
             })
         })
     })
