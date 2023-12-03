@@ -12,7 +12,7 @@ import {
     deleteGist,
     FulfillmentCode,
 } from "@chainlink/functions-toolkit";
-import { DataListingFactory } from "../typechain-types"
+import { DataListingFactory, USDCToken } from "../typechain-types"
 
 import { networkConfig } from "../helper-hardhat-config"
 import { DeployFunction } from "hardhat-deploy/types"
@@ -34,6 +34,22 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const subscriptionId = networkConfig[chainId].functionsSubscriptionId!
 
     log("----------------------------------------------------")
+
+    await deploy("USDCToken", {
+        from: deployer,
+        args: ["1000000000000000000000000"],
+        log: true,
+        waitConfirmations: networkConfig[chainId].blockConfirmations || 1,
+    })
+
+    const usdcToken: USDCToken = await ethers.getContract("USDCToken", deployer)
+    const usdcTokenAddress: string = await usdcToken.getAddress();
+
+    const accounts = await ethers.getSigners()
+    const deployerAddress: string = accounts[0].address
+    console.log(deployerAddress)
+
+    const approvePurchase = await usdcToken.approve(deployerAddress, "1000000000000000000000000")
 
     await deploy("DataListingFactory", {
         from: deployer,
@@ -170,7 +186,10 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
         tokenPubKey,
         dataPubKey,
         encryptedSecretsUrls,
-        "GoogleFit"
+        "GoogleFit",
+        usdcTokenAddress,
+        "100000000000000000000",
+        "100",
     )
 
     const createTxReceipt = await createTx.wait(1) // Wait for the transaction to be mined

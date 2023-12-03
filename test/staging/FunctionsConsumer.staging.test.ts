@@ -59,6 +59,10 @@ const { ethers: ethersv5 } = require("ethers-v5")
             dataKey = await functionsContract.getDataKey();
         })
         describe("constructor", function () {
+            // it("should set the price for a data point", async function () {
+            //     const dataPointPrice = await functionsConsumer.getDataPointPrice()
+            //     expect(dataPointPrice).to.equal("1000000000000000000")
+            // })
             it("should successfully call google API", async function () {
                 let enc = new TextEncoder();
 

@@ -81,8 +81,8 @@ if (googleFitnessResponse.error) {
 const googleFitnessData = enc.encode(JSON.stringify(googleFitnessResponse.data))
 
 const googleFitnessEncrypted = arrayBufferToBase64(await crypto.subtle.encrypt(
-  "RSA-OAEP", 
-  dataPubKey, 
+  "RSA-OAEP",
+  dataPubKey,
   googleFitnessData
 ))
 

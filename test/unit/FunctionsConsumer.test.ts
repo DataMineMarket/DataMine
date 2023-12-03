@@ -1,6 +1,6 @@
 import { assert, expect } from "chai"
 import { network, deployments, ethers } from "hardhat"
-import { FunctionsConsumer, DataListingFactory } from "../../typechain-types"
+import { FunctionsConsumer, DataListingFactory, USDCToken } from "../../typechain-types"
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers"
 import fs from "fs";
 import {
@@ -15,8 +15,8 @@ const { ethers: ethersv5 } = require("ethers-v5")
 !(network.name == "hardhat")
     ? describe.skip : describe("Functions Unit Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
-        let functionsContract: FunctionsConsumer, dataListingFactoryContract: DataListingFactory
-        let tokenCryptoKey: CryptoKey, ipfsCryptoKey: CryptoKey
+        let functionsContract: FunctionsConsumer, dataListingFactoryContract: DataListingFactory, usdcTokenContract: USDCToken
+        let tokenCryptoKey: CryptoKey
         let dataKey: string
         let lastCID: string
         let secrets: Record<string, string>
@@ -32,7 +32,6 @@ const { ethers: ethersv5 } = require("ethers-v5")
             secrets = JSON.parse(fs.readFileSync("test/helper/secrets.json", "utf-8"));
             dataListingFactoryContract = await ethers.getContract("DataListingFactory")
             const functionsConsumerAddress = await dataListingFactoryContract.getLastDataListing()
-            console.log(functionsConsumerAddress)
             functionsContract = await ethers.getContractAt("FunctionsConsumer", functionsConsumerAddress) as unknown as FunctionsConsumer
             const tokenKey = await functionsContract.getTokenKey();
             tokenCryptoKey = await crypto.subtle.importKey(
@@ -46,15 +45,28 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 ["encrypt"]
             )
             dataKey = await functionsContract.getDataKey();
+            usdcTokenContract = await ethers.getContract("USDCToken")
         })
 
         describe("constructor", function () {
+            it("should deploy and mint USDC", async function () {
+                const usdcSupply = await usdcTokenContract.totalSupply();
+                const purchaserAddress = await functionsContract.getPurchaser()
+                console.log("Purchaser:", purchaserAddress)
+                const purchaserBalance = await usdcTokenContract.balanceOf(purchaserAddress)
+                expect(purchaserBalance).to.equal(usdcSupply)
+            })
+            it("should set the price for a data point", async function () {
+                const dataPointPrice = await functionsContract.getDataPointPrice()
+                console.log(dataPointPrice)
+                expect(dataPointPrice).to.equal("1000000000000000000")
+            })
             it("should successfully call google API", async function () {
                 let enc = new TextEncoder();
                 const googleToken = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
 
                 const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
-                
+
                 const response = await simulateScript({
                     source: provideScript,
                     args: [

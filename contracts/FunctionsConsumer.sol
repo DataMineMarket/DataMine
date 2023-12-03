@@ -1,9 +1,10 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/FunctionsClient.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/libraries/FunctionsRequest.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     using FunctionsRequest for FunctionsRequest.Request;
@@ -18,11 +19,17 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     mapping(bytes32 requestId => RequestType requestType) private s_requests;
 
     string public s_provideScript;
-
     string public s_tokenKey;
     string public s_dataKey;
     bytes public s_encryptedSecretsUrls;
     string public s_dataSource;
+    address private immutable i_usdcTokenAddress;
+
+    address private immutable i_purchaser;
+    IERC20 private s_usdcToken;
+    uint256 private s_usdcTokenBalance;
+    uint256 private immutable i_dataPointQuantity;
+    uint256 private immutable i_dataPointPrice;
 
     error UnexpectedRequestID(bytes32 requestId);
 
@@ -43,13 +50,29 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         string memory tokenKey,
         string memory dataKey,
         bytes memory encryptedSecretsUrls,
-        string memory dataSource
+        string memory dataSource,
+        address usdcTokenAddress,
+        uint256 initialBalance,
+        uint256 dataPointQuantity
     ) FunctionsClient(router) ConfirmedOwner(tx.origin) {
+        i_purchaser = tx.origin;
         s_provideScript = provideScript;
         s_tokenKey = tokenKey;
         s_dataKey = dataKey;
         s_encryptedSecretsUrls = encryptedSecretsUrls;
         s_dataSource = dataSource;
+        i_usdcTokenAddress = usdcTokenAddress;
+        s_usdcTokenBalance = initialBalance;
+        i_dataPointQuantity = dataPointQuantity;
+        i_dataPointPrice = s_usdcTokenBalance / i_dataPointQuantity;
+
+        s_usdcToken = IERC20(usdcTokenAddress);
+
+        uint256 purchaserUsdcBalance = s_usdcToken.balanceOf(i_purchaser);
+
+        require(purchaserUsdcBalance >= s_usdcTokenBalance, "insufficient USDC Balance");
+        require(s_usdcToken.transferFrom(i_purchaser, address(this), s_usdcTokenBalance), "USDC transfer failed");
+
     }
 
     /**
@@ -175,5 +198,13 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     function getDataSource() external view returns (string memory) {
         return s_dataSource;
+    }
+
+    function getPurchaser() external view returns (address) {
+        return i_purchaser;
+    }
+
+    function getDataPointPrice() external view returns (uint256) {
+        return i_dataPointPrice;
     }
 }

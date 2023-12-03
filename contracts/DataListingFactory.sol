@@ -1,5 +1,5 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import {FunctionsConsumer} from "./FunctionsConsumer.sol";
 
@@ -24,7 +24,10 @@ contract DataListingFactory {
         string memory tokenKey,
         string memory dataKey,
         bytes memory encryptedSecretsUrls,
-        string memory dataSource
+        string memory dataSource,
+        address usdcTokenAddress,
+        uint256 initialBalance,
+        uint256 dataPointQuantity
     ) external returns (address) {
         FunctionsConsumer consumer = new FunctionsConsumer(
             router,
@@ -32,7 +35,10 @@ contract DataListingFactory {
             tokenKey, 
             dataKey,
             encryptedSecretsUrls,
-            dataSource
+            dataSource,
+            usdcTokenAddress,
+            initialBalance,
+            dataPointQuantity
         );
         s_dataListingContracts.push(consumer);
         s_dataListingSources.push(dataSource);
