@@ -15,7 +15,10 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     string[] public s_dataCIDs;
 
-    enum RequestType { PROVIDE, DECRYPT }
+    enum RequestType {
+        PROVIDE,
+        DECRYPT
+    }
     mapping(bytes32 requestId => RequestType requestType) private s_requests;
 
     string public s_provideScript;
@@ -169,13 +172,13 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         }
         s_lastResponse = response;
         s_lastError = err;
-        
+
         RequestType requestType = s_requests[requestId];
         string memory responseString = string(response);
 
         if (err.length == 0 && requestType == RequestType.PROVIDE) {
             s_dataCIDs.push(responseString);
-        } 
+        }
 
         emit Response(requestId, s_lastResponse, s_lastError);
     }
