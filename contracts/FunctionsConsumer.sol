@@ -30,6 +30,10 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     error UnexpectedRequestID(bytes32 requestId);
 
     event Response(bytes32 indexed requestId, bytes response, bytes err);
+    event Test1();
+    event Test2();
+    event Test3();
+    event Test4();
 
     /**
      * @notice Initialize the contract with a specified address for the LINK token
@@ -144,16 +148,22 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         bytes memory response,
         bytes memory err
     ) internal override {
+        emit Test1();
+
         if (s_lastRequestId != requestId) {
             revert UnexpectedRequestID(requestId);
         }
+
         s_lastResponse = response;
         s_lastError = err;
+        emit Test2();
 
         RequestType requestType = s_requests[requestId];
         string memory responseString = string(response);
+        emit Test3();
 
         if (err.length == 0 && requestType == RequestType.PROVIDE) {
+            emit Test4();
             s_dataCIDs.push(responseString);
         }
 
@@ -178,5 +188,9 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     function getDataSource() external view returns (string memory) {
         return s_dataSource;
+    }
+
+    function getLastError() external view returns (bytes memory) {
+        return s_lastError;
     }
 }
