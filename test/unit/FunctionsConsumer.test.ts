@@ -32,7 +32,6 @@ const { ethers: ethersv5 } = require("ethers-v5")
             secrets = JSON.parse(fs.readFileSync("test/helper/secrets.json", "utf-8"));
             dataListingFactoryContract = await ethers.getContract("DataListingFactory")
             const functionsConsumerAddress = await dataListingFactoryContract.getLastDataListing()
-            console.log(functionsConsumerAddress)
             functionsContract = await ethers.getContractAt("FunctionsConsumer", functionsConsumerAddress) as unknown as FunctionsConsumer
             const tokenKey = await functionsContract.getTokenKey();
             tokenCryptoKey = await crypto.subtle.importKey(
@@ -54,7 +53,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 const googleToken = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
 
                 const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
-                
+
                 const response = await simulateScript({
                     source: provideScript,
                     args: [
@@ -64,6 +63,8 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     bytesArgs: [],
                     secrets: secrets,
                 });
+
+                console.log(response.capturedTerminalOutput)
 
                 const errorString = response.errorString;
                 expect(errorString).to.be.undefined;
@@ -79,7 +80,6 @@ const { ethers: ethersv5 } = require("ethers-v5")
                         decodedResponse
                     );
                     lastCID = decodedResponse as string;
-                    console.log(lastCID);
                     expect(lastCID.startsWith("bafkrei")).to.be.true;
                 }
             })
@@ -87,6 +87,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 const dataPrivKey = fs.readFileSync("test/helper/dataKey.txt", "utf-8");
 
                 const encodedDataKey = base64ToArrayBuffer(dataPrivKey);
+                console.log('lastCID', lastCID)
 
                 const importedDataKey = await crypto.subtle.importKey(
                     "pkcs8",
@@ -99,20 +100,55 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     ["decrypt"]
                 )
 
-                const resp = await fetch(`https://${lastCID}.ipfs.nftstorage.link/`)
+                const aesKeyResponse = await fetch(`https://${lastCID}.ipfs.nftstorage.link/`)
+                const aesKeyData = await aesKeyResponse.json()
+                const encryptedAesKey = aesKeyData.aesKey
+                const encryptedIv = aesKeyData.iv
+                const cids = aesKeyData.dataCids
 
-                const encryptedData = (await resp.json()).data
+                let encryptedData = ""
+                for (let i = 0; i < cids.length; i++) {
+                    console.log(cids[i])
+                    const resp = await fetch(`https://${cids[i]}.ipfs.nftstorage.link/`)
 
-                const data = new TextDecoder().decode(await crypto.subtle.decrypt(
+                    const data = (await resp.json()).data
+
+                    encryptedData += data
+                }
+
+                const decryptedAesKey = await crypto.subtle.decrypt(
                     {
                         name: "RSA-OAEP",
                     },
                     importedDataKey,
-                    base64ToArrayBuffer(encryptedData)
-                ))
+                    base64ToArrayBuffer(encryptedAesKey)
+                )
 
-                console.log(lastCID, data)
-                expect(data.startsWith("{\"session\":[]")).to.be.true;
+                const aesKey = await crypto.subtle.importKey(
+                    "raw",
+                    decryptedAesKey,
+                    { name: "AES-GCM", length: 256 },
+                    true,
+                    ["decrypt"]
+                );
+
+                const iv = await crypto.subtle.decrypt(
+                    {
+                        name: "RSA-OAEP",
+                    },
+                    importedDataKey,
+                    base64ToArrayBuffer(encryptedIv)
+                )
+                // Decrypt the data
+                const decryptedData = new TextDecoder().decode(await crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: new Uint8Array(iv) },
+                    aesKey,
+                    base64ToArrayBuffer(encryptedData)
+                ));
+
+
+                console.log("decryptedData: ", decryptedData)
+                expect(decryptedData.startsWith("{\"session\":[")).to.be.true;
             })
         })
     })

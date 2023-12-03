@@ -124,7 +124,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                             );
                         } else if (fulfillmentCode === FulfillmentCode.USER_CALLBACK_ERROR) {
                             console.log(
-                                `\n⚠️ Request ${response.requestId
+                                `\n Request ${response.requestId
                                 } fulfilled. However, the consumer contract callback failed. Cost is ${ethersv5.utils.formatEther(
                                     response.totalCostInJuels
                                 )} LINK. Complete reponse: `,
@@ -164,9 +164,9 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     }
                 })();
             })
-            it("should store the CID", async function () {
+            it("should store the CIDs", async function () {
                 cidArray = await functionsConsumer.getDataCIDs();
-                console.log("Last CID:", cidArray[cidArray.length - 1])
+                const s_requests = await functionsConsumer.s_lastRequestId();
                 expect(cidArray[cidArray.length - 1]).to.equal(lastCID)
             })
             it("should decrypt the data on IPFS", async function () {
@@ -185,21 +185,54 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     ["decrypt"]
                 )
 
+                // const cidBundle = await fetch()
+
                 for (const cid of cidArray) {
-                    const resp = await fetch(`https://${cid}.ipfs.nftstorage.link/`)
+                    const bundledResponse = await fetch(`https://${cid}.ipfs.nftstorage.link/`)
+                    const bundledData = await bundledResponse.json()
+                    const encryptedAesKey = bundledData.aesKey
+                    const encryptedIv = bundledData.iv
+                    const dataCids = bundledData.dataCids
 
-                    const encryptedData = (await resp.json()).data
+                    let encryptedData = ""
+                    for (const cid of dataCids) {
+                        const resp = await fetch(`https://${cid}.ipfs.nftstorage.link/`)
 
-                    const data = new TextDecoder().decode(await crypto.subtle.decrypt(
+                        const data = (await resp.json()).data
+
+                        encryptedData += data
+                    }
+                    const decryptedAesKey = await crypto.subtle.decrypt(
                         {
                             name: "RSA-OAEP",
                         },
                         importedDataKey,
-                        base64ToArrayBuffer(encryptedData)
-                    ))
+                        base64ToArrayBuffer(encryptedAesKey)
+                    )
 
-                    console.log(cid, data)
-                    expect(data.startsWith("{\"session\":[]")).to.be.true;
+                    const aesKey = await crypto.subtle.importKey(
+                        "raw",
+                        decryptedAesKey,
+                        { name: "AES-GCM", length: 256 },
+                        true,
+                        ["decrypt"]
+                    );
+
+                    const iv = await crypto.subtle.decrypt(
+                        {
+                            name: "RSA-OAEP",
+                        },
+                        importedDataKey,
+                        base64ToArrayBuffer(encryptedIv)
+                    )
+                    const decryptedData = new TextDecoder().decode(await crypto.subtle.decrypt(
+                        { name: "AES-GCM", iv: new Uint8Array(iv) },
+                        aesKey,
+                        base64ToArrayBuffer(encryptedData)
+                    ));
+
+                    console.log("decrypted Data:", decryptedData)
+                    expect(decryptedData.startsWith("{\"session\":[")).to.be.true;
                 }
             })
         })
