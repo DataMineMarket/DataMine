@@ -60,7 +60,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
     log("----------------------------------------------------")
 
-    const provideScript = fs.readFileSync("scripts/provide.js", "utf-8");
+    const provideScript = fs.readFileSync("scripts/noRequest.js", "utf-8"); // TODO: use real script
     const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
 
     // API Key Encryption

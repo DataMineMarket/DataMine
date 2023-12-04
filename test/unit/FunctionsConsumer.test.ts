@@ -21,7 +21,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
         let lastCID: string
         let secrets: Record<string, string>
 
-        const provideScript = fs.readFileSync("scripts/provide.js", "utf-8");
+        const provideScript = fs.readFileSync("scripts/noRequest.js", "utf-8"); // TODO: use real script
         const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
 
         beforeEach(async function () {

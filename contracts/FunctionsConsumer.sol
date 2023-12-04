@@ -71,10 +71,10 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
         s_usdcToken = IERC20(usdcTokenAddress);
 
-        uint256 purchaserUsdcBalance = s_usdcToken.balanceOf(i_purchaser);
+        // uint256 purchaserUsdcBalance = s_usdcToken.balanceOf(i_purchaser);
 
-        require(purchaserUsdcBalance >= s_usdcTokenBalance, "insufficient USDC Balance");
-        require(s_usdcToken.transferFrom(i_purchaser, address(this), s_usdcTokenBalance), "USDC transfer failed");
+        // require(purchaserUsdcBalance >= s_usdcTokenBalance, "insufficient USDC Balance");
+        // require(s_usdcToken.transferFrom(i_purchaser, address(this), s_usdcTokenBalance), "USDC transfer failed");
 
     }
 

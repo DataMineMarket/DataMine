@@ -33,7 +33,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
 
         const chainId = network.config.chainId || 31337
 
-        const provideScript = fs.readFileSync("scripts/provide.js", "utf-8");
+        const provideScript = fs.readFileSync("scripts/noRequest.js", "utf-8"); // TODO: use real script
         const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
 
         beforeEach(async function () {
@@ -188,8 +188,6 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     true,
                     ["decrypt"]
                 )
-
-                // const cidBundle = await fetch()
 
                 for (const cid of cidArray) {
                     const bundledResponse = await fetch(`https://${cid}.ipfs.nftstorage.link/`)
