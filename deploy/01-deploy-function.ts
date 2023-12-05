@@ -175,7 +175,8 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const dataListingFactoryAddress = await dataListingFactory.getAddress()
 
     const listingBalance = "100000000000000000000"
-    await token.approve(dataListingFactoryAddress, listingBalance)
+    const approveTx = await token.approve(dataListingFactoryAddress, listingBalance)
+    await approveTx.wait(1)
 
     log("Creating new Data Listing...")
     const createTx = await dataListingFactory.createDataListing(

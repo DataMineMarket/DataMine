@@ -20,14 +20,14 @@ export const networkConfig: networkConfigInfo = {
         callbackGasLimit: "500000", // 500,000 gas
         blockConfirmations: 1,
         functionsRouter: "0x6E2dc0F9DB014aE19888F539E59285D2Ea04244C",
-        functionsSubscriptionId: "732",
+        functionsSubscriptionId: process.env.SUBSCRIPTION_ID,
         functionsDonId: "fun-localhost-1",
     },
     80001: {
         name: "mumbai",
         blockConfirmations: 6,
         functionsRouter: "0x6E2dc0F9DB014aE19888F539E59285D2Ea04244C",
-        functionsSubscriptionId: "732",
+        functionsSubscriptionId: process.env.SUBSCRIPTION_ID,
         functionsDonId: "fun-polygon-mumbai-1",
         gasLimit: 300000,
         explorerUrl: "https://mumbai.polygonscan.com",
