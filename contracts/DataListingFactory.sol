@@ -1,10 +1,11 @@
 // SPDX-License-Identifier: MIT
 pragma solidity 0.8.20;
 
-import {FunctionsConsumer} from "./FunctionsConsumer.sol";
+import {DataListing} from "./DataListing.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
 contract DataListingFactory {
-    FunctionsConsumer[] public s_dataListingContracts;
+    DataListing[] public s_dataListingContracts;
     string[] public s_dataListingSources;
 
     event DataListingCreated(address indexed dataListing, string indexed dataSource);
@@ -25,24 +26,34 @@ contract DataListingFactory {
         string memory dataKey,
         bytes memory encryptedSecretsUrls,
         string memory dataSource,
-        address usdcTokenAddress,
+        address tokenAddress,
         uint256 initialBalance,
         uint256 dataPointQuantity
     ) external returns (address) {
-        FunctionsConsumer consumer = new FunctionsConsumer(
+        DataListing consumer = new DataListing(
             router,
             provideScript,
-            tokenKey, 
+            tokenKey,
             dataKey,
             encryptedSecretsUrls,
             dataSource,
-            usdcTokenAddress,
+            tokenAddress,
             initialBalance,
             dataPointQuantity
         );
+        address purchaser = tx.origin;
+        IERC20 token = IERC20(tokenAddress);
+        uint256 purchaserTokenBalance = token.balanceOf(purchaser);
+        uint256 purchaserTokenAllowance = token.allowance(purchaser, address(this));
+        require(purchaserTokenBalance >= initialBalance, "Insufficient Token Balance");
+        require(purchaserTokenAllowance >= initialBalance, "Insufficient Token Allowance");
+
         s_dataListingContracts.push(consumer);
         s_dataListingSources.push(dataSource);
         emit DataListingCreated(address(consumer), dataSource);
+
+        require(token.transferFrom(purchaser, address(consumer), initialBalance), "Token transfer failed");
+
         return address(consumer);
     }
 
@@ -56,7 +67,7 @@ contract DataListingFactory {
     /**
      * @notice Get the list of DataListing contracts
      **/
-    function getDataListings() external view returns (FunctionsConsumer[] memory) {
+    function getDataListings() external view returns (DataListing[] memory) {
         return s_dataListingContracts;
     }
 
@@ -71,14 +82,14 @@ contract DataListingFactory {
      * @notice Get a DataListing contract by index
      * @param index The index of the DataListing contract
      **/
-    function getDataListing(uint256 index) external view returns (FunctionsConsumer) {
+    function getDataListing(uint256 index) external view returns (DataListing) {
         return s_dataListingContracts[index];
     }
 
     /**
      * @notice Get the last DataListing contract
      **/
-    function getLastDataListing() external view returns (FunctionsConsumer) {
+    function getLastDataListing() external view returns (DataListing) {
         return s_dataListingContracts[s_dataListingContracts.length - 1];
     }
 }

@@ -1,7 +1,7 @@
 import { developmentChains, networkConfig } from "../../helper-hardhat-config"
 import { assert, expect } from "chai"
 import { network, deployments, ethers } from "hardhat"
-import { DataListingFactory, FunctionsConsumer } from "../../typechain-types"
+import { DataListingFactory, DataListing } from "../../typechain-types"
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers"
 import fs from "fs";
 import * as crypto from "crypto"
@@ -24,7 +24,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
     ? describe.skip
     : describe("DataNexus Staging Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
-        let functionsContract: FunctionsConsumer, functionsConsumer: FunctionsConsumer
+        let dataListingContract: DataListing, dataListing: DataListing
         let tokenCryptoKey: CryptoKey
         let dataKey: string
         let secrets: Record<string, string>
@@ -42,10 +42,10 @@ const { ethers: ethersv5 } = require("ethers-v5")
             user = accounts[1]
             const dataListingFactoryContract: DataListingFactory = await ethers.getContract("DataListingFactory")
             const functionsConsumerAddress = await dataListingFactoryContract.getLastDataListing()
-            functionsContract = await ethers.getContractAt("FunctionsConsumer", functionsConsumerAddress) as unknown as FunctionsConsumer
-            functionsConsumer = functionsContract.connect(deployer)
+            dataListingContract = await ethers.getContractAt("DataListing", functionsConsumerAddress) as unknown as DataListing
+            dataListing = dataListingContract.connect(deployer)
 
-            const tokenKey = await functionsContract.getTokenKey();
+            const tokenKey = await dataListingContract.getTokenKey();
             tokenCryptoKey = await crypto.subtle.importKey(
                 "spki",
                 fromBase64(tokenKey),
@@ -56,7 +56,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 true,
                 ["encrypt"]
             )
-            dataKey = await functionsContract.getDataKey();
+            dataKey = await dataListingContract.getDataKey();
         })
         describe("constructor", function () {
             // it("should set the price for a data point", async function () {
@@ -75,7 +75,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     dataKey,
                 ]
 
-                const transaction = await functionsConsumer.provideData(
+                const transaction = await dataListing.provideData(
                     0, // don hosted secrets - slot ID - empty in this example
                     0, // don hosted secrets - version - empty in this example
                     args,
@@ -169,8 +169,8 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 })();
             })
             it("should store the CIDs", async function () {
-                cidArray = await functionsConsumer.getDataCIDs();
-                const s_requests = await functionsConsumer.s_lastRequestId();
+                cidArray = await dataListing.getDataCIDs();
+                const s_requests = await dataListing.s_lastRequestId();
                 expect(cidArray[cidArray.length - 1]).to.equal(lastCID)
             })
             it("should decrypt the data on IPFS", async function () {

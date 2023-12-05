@@ -6,7 +6,7 @@ import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/Confir
 import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/libraries/FunctionsRequest.sol";
 import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
+contract DataListing is FunctionsClient, ConfirmedOwner {
     using FunctionsRequest for FunctionsRequest.Request;
 
     bytes32 public s_lastRequestId;
@@ -26,11 +26,10 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
     string public s_dataKey;
     bytes public s_encryptedSecretsUrls;
     string public s_dataSource;
-    address private immutable i_usdcTokenAddress;
-
+    address private immutable i_tokenAddress;
     address private immutable i_purchaser;
-    IERC20 private s_usdcToken;
-    uint256 private s_usdcTokenBalance;
+    IERC20 private s_token;
+    uint256 private s_tokenBalance;
     uint256 private immutable i_dataPointQuantity;
     uint256 private immutable i_dataPointPrice;
 
@@ -54,7 +53,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         string memory dataKey,
         bytes memory encryptedSecretsUrls,
         string memory dataSource,
-        address usdcTokenAddress,
+        address tokenAddress,
         uint256 initialBalance,
         uint256 dataPointQuantity
     ) FunctionsClient(router) ConfirmedOwner(tx.origin) {
@@ -64,18 +63,11 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         s_dataKey = dataKey;
         s_encryptedSecretsUrls = encryptedSecretsUrls;
         s_dataSource = dataSource;
-        i_usdcTokenAddress = usdcTokenAddress;
-        s_usdcTokenBalance = initialBalance;
+        i_tokenAddress = tokenAddress;
+        s_token = IERC20(tokenAddress);
+        s_tokenBalance = initialBalance;
         i_dataPointQuantity = dataPointQuantity;
-        i_dataPointPrice = s_usdcTokenBalance / i_dataPointQuantity;
-
-        s_usdcToken = IERC20(usdcTokenAddress);
-
-        // uint256 purchaserUsdcBalance = s_usdcToken.balanceOf(i_purchaser);
-
-        // require(purchaserUsdcBalance >= s_usdcTokenBalance, "insufficient USDC Balance");
-        // require(s_usdcToken.transferFrom(i_purchaser, address(this), s_usdcTokenBalance), "USDC transfer failed");
-
+        i_dataPointPrice = s_tokenBalance / i_dataPointQuantity;
     }
 
     /**
@@ -94,7 +86,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         uint64 subscriptionId,
         uint32 gasLimit,
         bytes32 donID
-    ) external onlyOwner {
+    ) external {
         FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(s_provideScript);
         if (s_encryptedSecretsUrls.length > 0) req.addSecretsReference(s_encryptedSecretsUrls);

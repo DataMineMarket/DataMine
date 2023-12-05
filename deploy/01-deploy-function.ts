@@ -12,7 +12,7 @@ import {
     deleteGist,
     FulfillmentCode,
 } from "@chainlink/functions-toolkit";
-import { DataListingFactory, USDCToken } from "../typechain-types"
+import { DataListingFactory, ERC20Token } from "../typechain-types"
 
 import { networkConfig } from "../helper-hardhat-config"
 import { DeployFunction } from "hardhat-deploy/types"
@@ -35,21 +35,15 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
     log("----------------------------------------------------")
 
-    await deploy("USDCToken", {
+    await deploy("ERC20Token", {
         from: deployer,
         args: ["1000000000000000000000000"],
         log: true,
         waitConfirmations: networkConfig[chainId].blockConfirmations || 1,
     })
 
-    const usdcToken: USDCToken = await ethers.getContract("USDCToken", deployer)
-    const usdcTokenAddress: string = await usdcToken.getAddress();
-
-    const accounts = await ethers.getSigners()
-    const deployerAddress: string = accounts[0].address
-    console.log(deployerAddress)
-
-    const approvePurchase = await usdcToken.approve(deployerAddress, "1000000000000000000000000")
+    const token: ERC20Token = await ethers.getContract("ERC20Token", deployer)
+    const tokenAddress: string = await token.getAddress();
 
     await deploy("DataListingFactory", {
         from: deployer,
@@ -60,7 +54,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
     log("----------------------------------------------------")
 
-    const provideScript = fs.readFileSync("scripts/noRequest.js", "utf-8"); // TODO: use real script
+    const provideScript = fs.readFileSync("scripts/provide.js", "utf-8"); // TODO: use real script
     const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
 
     // API Key Encryption
@@ -178,6 +172,9 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     log("----------------------------------------------------")
 
     const dataListingFactory: DataListingFactory = await ethers.getContract("DataListingFactory", deployer)
+    const dataListingFactoryAddress = await dataListingFactory.getAddress()
+
+    const approvePurchase = await token.approve(dataListingFactoryAddress, "100000000000000000000")
 
     log("Creating new Data Listing...")
     const createTx = await dataListingFactory.createDataListing(
@@ -187,7 +184,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
         dataPubKey,
         encryptedSecretsUrls,
         "GoogleFit",
-        usdcTokenAddress,
+        tokenAddress,
         "100000000000000000000",
         "100",
     )
