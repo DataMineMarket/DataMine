@@ -1,7 +1,7 @@
 import { developmentChains, networkConfig } from "../../helper-hardhat-config"
 import { assert, expect } from "chai"
 import { network, deployments, ethers } from "hardhat"
-import { DataListingFactory, DataListing } from "../../typechain-types"
+import { DataListingFactory, DataListing, ERC20Token } from "../../typechain-types"
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers"
 import fs from "fs";
 import * as crypto from "crypto"
@@ -17,6 +17,7 @@ import {
     deleteGist,
     FulfillmentCode,
 } from "@chainlink/functions-toolkit"
+import { AddressLike } from "ethers"
 const { ethers: ethersv5 } = require("ethers-v5")
 
 
@@ -24,12 +25,13 @@ const { ethers: ethersv5 } = require("ethers-v5")
     ? describe.skip
     : describe("DataNexus Staging Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
-        let dataListingContract: DataListing, dataListing: DataListing
+        let dataListingContract: DataListing, dataListing: DataListing, usdcTokenContract: ERC20Token
         let tokenCryptoKey: CryptoKey
         let dataKey: string
         let secrets: Record<string, string>
         let cidArray: string[]
         let lastCID: string
+        let dataListingAddress: AddressLike
 
         const chainId = network.config.chainId || 31337
 
@@ -40,9 +42,11 @@ const { ethers: ethersv5 } = require("ethers-v5")
             accounts = await ethers.getSigners()
             deployer = accounts[0]
             user = accounts[1]
+            usdcTokenContract = await ethers.getContract("ERC20Token")
             const dataListingFactoryContract: DataListingFactory = await ethers.getContract("DataListingFactory")
-            const functionsConsumerAddress = await dataListingFactoryContract.getLastDataListing()
-            dataListingContract = await ethers.getContractAt("DataListing", functionsConsumerAddress) as unknown as DataListing
+            const dataListingFactoryAddress = await dataListingFactoryContract.getAddress()
+            dataListingAddress = await dataListingFactoryContract.getLastDataListing()
+            dataListingContract = await ethers.getContractAt("DataListing", dataListingAddress) as unknown as DataListing
             dataListing = dataListingContract.connect(deployer)
 
             const tokenKey = await dataListingContract.getTokenKey();
@@ -59,11 +63,31 @@ const { ethers: ethersv5 } = require("ethers-v5")
             dataKey = await dataListingContract.getDataKey();
         })
         describe("constructor", function () {
-            // it("should set the price for a data point", async function () {
-            //     const dataPointPrice = await functionsConsumer.getDataPointPrice()
-            //     expect(dataPointPrice).to.equal("1000000000000000000")
-            // })
+            it("should deploy and mint USDC", async function () {
+                const dataListingAddress = await dataListingContract.getAddress()
+                const dataListingBalance = await usdcTokenContract.balanceOf(dataListingAddress)
+                const dataListingBalanceField = await dataListingContract.getTokenBalance()
+
+                const purchaserAddress = await dataListingContract.getPurchaser()
+                const purchaserBalance = await usdcTokenContract.balanceOf(purchaserAddress)
+                const purchaserAllowance = await usdcTokenContract.allowance(purchaserAddress, dataListingAddress)
+
+                console.log("Purchaser:", purchaserAddress, "Balance:", purchaserBalance, "Allowance:", purchaserAllowance)
+                console.log("Listing:", dataListingAddress, "Balance:", dataListingBalance)
+
+                expect(purchaserAllowance).to.equal("0")
+                expect(dataListingBalance).to.equal(dataListingBalanceField)
+            })
+            it("should set the price for a data point", async function () {
+                const dataPointPrice = await dataListingContract.getDataPointPrice()
+                console.log("Data Point Price:", dataPointPrice)
+                expect(dataPointPrice).to.equal("1000000000000000000")
+            })
             it("should successfully call google API", async function () {
+                const purchaserInitialBalance = await usdcTokenContract.balanceOf(deployer.address)
+                const listingInitialBalance = await usdcTokenContract.balanceOf(dataListingAddress)
+                const dataPointPrice = await dataListingContract.getDataPointPrice()
+
                 let enc = new TextEncoder();
 
                 const googleToken = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
@@ -162,6 +186,18 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                 console.log(lastCID);
                                 expect(lastCID.startsWith("bafkrei")).to.be.true;
                             }
+
+                            const purchaserBalance = await usdcTokenContract.balanceOf(deployer.address)
+                            const listingBalance = await usdcTokenContract.balanceOf(dataListingAddress)
+                            console.log("Purchaser")
+                            console.log("\tInitial Balance:", purchaserInitialBalance)
+                            console.log("\tBalance:", purchaserBalance, "Increased by:", purchaserBalance - purchaserInitialBalance)
+                            console.log("Listing")
+                            console.log("\tInitial Balance:", listingInitialBalance)
+                            console.log("\tBalance:", listingBalance, "Decreased by:", listingInitialBalance - listingBalance)
+
+                            expect(purchaserBalance).to.equal(purchaserInitialBalance + dataPointPrice)
+                            expect(listingBalance).to.equal(listingInitialBalance - dataPointPrice)
                         }
                     } catch (error) {
                         assert.fail("Error listening for response", error)
@@ -170,7 +206,6 @@ const { ethers: ethersv5 } = require("ethers-v5")
             })
             it("should store the CIDs", async function () {
                 cidArray = await dataListing.getDataCIDs();
-                const s_requests = await dataListing.s_lastRequestId();
                 expect(cidArray[cidArray.length - 1]).to.equal(lastCID)
             })
             it("should decrypt the data on IPFS", async function () {

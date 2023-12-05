@@ -30,7 +30,7 @@ contract DataListingFactory {
         uint256 initialBalance,
         uint256 dataPointQuantity
     ) external returns (address) {
-        DataListing consumer = new DataListing(
+        DataListing listing = new DataListing(
             router,
             provideScript,
             tokenKey,
@@ -48,13 +48,13 @@ contract DataListingFactory {
         require(purchaserTokenBalance >= initialBalance, "Insufficient Token Balance");
         require(purchaserTokenAllowance >= initialBalance, "Insufficient Token Allowance");
 
-        s_dataListingContracts.push(consumer);
+        s_dataListingContracts.push(listing);
         s_dataListingSources.push(dataSource);
-        emit DataListingCreated(address(consumer), dataSource);
+        emit DataListingCreated(address(listing), dataSource);
 
-        require(token.transferFrom(purchaser, address(consumer), initialBalance), "Token transfer failed");
+        require(token.transferFrom(purchaser, address(listing), initialBalance), "Token transfer failed");
 
-        return address(consumer);
+        return address(listing);
     }
 
     /**

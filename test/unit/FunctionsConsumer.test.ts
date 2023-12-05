@@ -11,6 +11,7 @@ import {
 import * as crypto from "crypto"
 import { fromBase64, arrayBufferToBase64, base64ToArrayBuffer } from "../../utils/conversions"
 const { ethers: ethersv5 } = require("ethers-v5")
+import { networkConfig } from "../../helper-hardhat-config"
 
 !(network.name == "hardhat")
     ? describe.skip : describe("Functions Unit Tests", function () {
@@ -52,123 +53,121 @@ const { ethers: ethersv5 } = require("ethers-v5")
             it("should deploy and mint USDC", async function () {
                 const usdcSupply = await usdcTokenContract.totalSupply();
                 const purchaserAddress = await dataListingContract.getPurchaser()
-                const purchaserBalance = await usdcTokenContract.balanceOf(purchaserAddress)
-                console.log("Purchaser:", purchaserAddress, "Balance:", purchaserBalance)
                 const dataListingAddress = await dataListingContract.getAddress()
-                const dataListingBalance = await usdcTokenContract.balanceOf(dataListingAddress)
-                console.log("Listing:", dataListingAddress, "Balance:", dataListingBalance)
+                const purchaserBalance = await usdcTokenContract.balanceOf(purchaserAddress)
                 const purchaserAllowance = await usdcTokenContract.allowance(purchaserAddress, dataListingAddress)
-                console.log("Purchaser Allowance:", purchaserAllowance)
+                console.log("Purchaser:", purchaserAddress, "Balance:", purchaserBalance, "Allowance:", purchaserAllowance)
+                const dataListingBalance = await usdcTokenContract.balanceOf(dataListingAddress)
+                console.log("Listing:  ", dataListingAddress, "Balance:   ", dataListingBalance)
                 expect(purchaserAllowance).to.equal("0")
                 expect(purchaserBalance).to.equal(usdcSupply - dataListingBalance)
             })
-            // it("")
             it("should set the price for a data point", async function () {
                 const dataPointPrice = await dataListingContract.getDataPointPrice()
                 console.log(dataPointPrice)
                 expect(dataPointPrice).to.equal("1000000000000000000")
             })
-            // it("should successfully call google API", async function () {
-            //     let enc = new TextEncoder();
-            //     const googleToken = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
+            it("should successfully call google API", async function () {
+                let enc = new TextEncoder();
+                const googleToken = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);
 
-            //     const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
+                const encrypted_google_token = await crypto.subtle.encrypt("RSA-OAEP", tokenCryptoKey, googleToken)
 
-            //     const response = await simulateScript({
-            //         source: provideScript,
-            //         args: [
-            //             arrayBufferToBase64(encrypted_google_token),
-            //             dataKey,
-            //         ],
-            //         bytesArgs: [],
-            //         secrets: secrets,
-            //     });
+                const response = await simulateScript({
+                    source: provideScript,
+                    args: [
+                        arrayBufferToBase64(encrypted_google_token),
+                        dataKey,
+                    ],
+                    bytesArgs: [],
+                    secrets: secrets,
+                });
 
-            //     console.log(response.capturedTerminalOutput)
+                console.log(response.capturedTerminalOutput)
 
-            //     const errorString = response.errorString;
-            //     expect(errorString).to.be.undefined;
+                const errorString = response.errorString;
+                expect(errorString).to.be.undefined;
 
-            //     const responseBytesHexstring = response.responseBytesHexstring;
-            //     if (ethersv5.utils.arrayify(responseBytesHexstring).length > 0) {
-            //         const decodedResponse = decodeResult(
-            //             response.responseBytesHexstring!,
-            //             ReturnType.string
-            //         );
-            //         console.log(
-            //             `\n✅ Decoded response: `,
-            //             decodedResponse
-            //         );
-            //         lastCID = decodedResponse as string;
-            //         expect(lastCID.startsWith("bafkrei")).to.be.true;
-            //     }
-            // })
-            // it("should decrypt the data from IPFS", async function () {
-            //     const dataPrivKey = fs.readFileSync("test/helper/dataKey.txt", "utf-8");
+                const responseBytesHexstring = response.responseBytesHexstring;
+                if (ethersv5.utils.arrayify(responseBytesHexstring).length > 0) {
+                    const decodedResponse = decodeResult(
+                        response.responseBytesHexstring!,
+                        ReturnType.string
+                    );
+                    console.log(
+                        `\n✅ Decoded response: `,
+                        decodedResponse
+                    );
+                    lastCID = decodedResponse as string;
+                    expect(lastCID.startsWith("bafkrei")).to.be.true;
+                }
+            })
+            it("should decrypt the data from IPFS", async function () {
+                const dataPrivKey = fs.readFileSync("test/helper/dataKey.txt", "utf-8");
 
-            //     const encodedDataKey = base64ToArrayBuffer(dataPrivKey);
-            //     console.log('lastCID', lastCID)
+                const encodedDataKey = base64ToArrayBuffer(dataPrivKey);
+                console.log('lastCID', lastCID)
 
-            //     const importedDataKey = await crypto.subtle.importKey(
-            //         "pkcs8",
-            //         encodedDataKey,
-            //         {
-            //             name: "RSA-OAEP",
-            //             hash: "SHA-256",
-            //         },
-            //         true,
-            //         ["decrypt"]
-            //     )
+                const importedDataKey = await crypto.subtle.importKey(
+                    "pkcs8",
+                    encodedDataKey,
+                    {
+                        name: "RSA-OAEP",
+                        hash: "SHA-256",
+                    },
+                    true,
+                    ["decrypt"]
+                )
 
-            //     const aesKeyResponse = await fetch(`https://${lastCID}.ipfs.nftstorage.link/`)
-            //     const aesKeyData = await aesKeyResponse.json()
-            //     const encryptedAesKey = aesKeyData.aesKey
-            //     const encryptedIv = aesKeyData.iv
-            //     const cids = aesKeyData.dataCids
+                const aesKeyResponse = await fetch(`https://${lastCID}.ipfs.nftstorage.link/`)
+                const aesKeyData = await aesKeyResponse.json()
+                const encryptedAesKey = aesKeyData.aesKey
+                const encryptedIv = aesKeyData.iv
+                const cids = aesKeyData.dataCids
 
-            //     let encryptedData = ""
-            //     for (let i = 0; i < cids.length; i++) {
-            //         console.log(cids[i])
-            //         const resp = await fetch(`https://${cids[i]}.ipfs.nftstorage.link/`)
+                let encryptedData = ""
+                for (let i = 0; i < cids.length; i++) {
+                    console.log(cids[i])
+                    const resp = await fetch(`https://${cids[i]}.ipfs.nftstorage.link/`)
 
-            //         const data = (await resp.json()).data
+                    const data = (await resp.json()).data
 
-            //         encryptedData += data
-            //     }
+                    encryptedData += data
+                }
 
-            //     const decryptedAesKey = await crypto.subtle.decrypt(
-            //         {
-            //             name: "RSA-OAEP",
-            //         },
-            //         importedDataKey,
-            //         base64ToArrayBuffer(encryptedAesKey)
-            //     )
+                const decryptedAesKey = await crypto.subtle.decrypt(
+                    {
+                        name: "RSA-OAEP",
+                    },
+                    importedDataKey,
+                    base64ToArrayBuffer(encryptedAesKey)
+                )
 
-            //     const aesKey = await crypto.subtle.importKey(
-            //         "raw",
-            //         decryptedAesKey,
-            //         { name: "AES-GCM", length: 256 },
-            //         true,
-            //         ["decrypt"]
-            //     );
+                const aesKey = await crypto.subtle.importKey(
+                    "raw",
+                    decryptedAesKey,
+                    { name: "AES-GCM", length: 256 },
+                    true,
+                    ["decrypt"]
+                );
 
-            //     const iv = await crypto.subtle.decrypt(
-            //         {
-            //             name: "RSA-OAEP",
-            //         },
-            //         importedDataKey,
-            //         base64ToArrayBuffer(encryptedIv)
-            //     )
-            //     // Decrypt the data
-            //     const decryptedData = new TextDecoder().decode(await crypto.subtle.decrypt(
-            //         { name: "AES-GCM", iv: new Uint8Array(iv) },
-            //         aesKey,
-            //         base64ToArrayBuffer(encryptedData)
-            //     ));
+                const iv = await crypto.subtle.decrypt(
+                    {
+                        name: "RSA-OAEP",
+                    },
+                    importedDataKey,
+                    base64ToArrayBuffer(encryptedIv)
+                )
+                // Decrypt the data
+                const decryptedData = new TextDecoder().decode(await crypto.subtle.decrypt(
+                    { name: "AES-GCM", iv: new Uint8Array(iv) },
+                    aesKey,
+                    base64ToArrayBuffer(encryptedData)
+                ));
 
 
-            //     console.log("decryptedData: ", decryptedData)
-            //     expect(decryptedData.startsWith("{\"session\":[")).to.be.true;
-            // })
+                console.log("decryptedData: ", decryptedData)
+                expect(decryptedData.startsWith("{\"session\":[")).to.be.true;
+            })
         })
     })

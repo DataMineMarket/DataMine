@@ -19,23 +19,24 @@ contract DataListing is FunctionsClient, ConfirmedOwner {
         PROVIDE,
         DECRYPT
     }
-    mapping(bytes32 requestId => RequestType requestType) private s_requests;
+    mapping(bytes32 requestId => address provider) private s_dataPointProviders;
 
     string public s_provideScript;
     string public s_tokenKey;
     string public s_dataKey;
     bytes public s_encryptedSecretsUrls;
     string public s_dataSource;
-    address private immutable i_tokenAddress;
-    address private immutable i_purchaser;
+    address public immutable i_tokenAddress;
+    address public immutable i_purchaser;
     IERC20 private s_token;
-    uint256 private s_tokenBalance;
-    uint256 private immutable i_dataPointQuantity;
-    uint256 private immutable i_dataPointPrice;
+    uint256 public s_tokenBalance;
+    uint256 public s_dataPointQuantity;
+    uint256 public immutable i_dataPointPrice;
 
     error UnexpectedRequestID(bytes32 requestId);
 
     event Response(bytes32 indexed requestId, bytes response, bytes err);
+    event Reward(address provider, uint256 amount);
 
     /**
      * @notice Initialize the contract with a specified address for the LINK token
@@ -66,8 +67,8 @@ contract DataListing is FunctionsClient, ConfirmedOwner {
         i_tokenAddress = tokenAddress;
         s_token = IERC20(tokenAddress);
         s_tokenBalance = initialBalance;
-        i_dataPointQuantity = dataPointQuantity;
-        i_dataPointPrice = s_tokenBalance / i_dataPointQuantity;
+        s_dataPointQuantity = dataPointQuantity;
+        i_dataPointPrice = s_tokenBalance / s_dataPointQuantity;
     }
 
     /**
@@ -96,7 +97,7 @@ contract DataListing is FunctionsClient, ConfirmedOwner {
         if (args.length > 0) req.setArgs(args);
         if (bytesArgs.length > 0) req.setBytesArgs(bytesArgs);
         s_lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionId, gasLimit, donID);
-        s_requests[s_lastRequestId] = RequestType.PROVIDE;
+        s_dataPointProviders[s_lastRequestId] = tx.origin;
     }
 
     /**
@@ -126,7 +127,7 @@ contract DataListing is FunctionsClient, ConfirmedOwner {
         if (args.length > 0) req.setArgs(args);
         if (bytesArgs.length > 0) req.setBytesArgs(bytesArgs);
         s_lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionId, gasLimit, donID);
-        s_requests[s_lastRequestId] = RequestType.DECRYPT;
+        // s_requests[s_lastRequestId] = RequestType.DECRYPT;
     }
 
     /**
@@ -165,11 +166,15 @@ contract DataListing is FunctionsClient, ConfirmedOwner {
         s_lastResponse = response;
         s_lastError = err;
 
-        RequestType requestType = s_requests[requestId];
+        address provider = s_dataPointProviders[requestId];
         string memory responseString = string(response);
 
-        if (err.length == 0 && requestType == RequestType.PROVIDE) {
+        if (err.length == 0) {
             s_dataCIDs.push(responseString);
+            s_dataPointQuantity -= 1;
+            s_tokenBalance -= i_dataPointPrice;
+            require(s_token.transfer(provider, i_dataPointPrice), "Token transfer failed");
+            emit Reward(provider, i_dataPointPrice);
         }
 
         emit Response(requestId, s_lastResponse, s_lastError);
@@ -201,5 +206,9 @@ contract DataListing is FunctionsClient, ConfirmedOwner {
 
     function getDataPointPrice() external view returns (uint256) {
         return i_dataPointPrice;
+    }
+
+    function getTokenBalance() external view returns (uint256) {
+        return s_tokenBalance;
     }
 }

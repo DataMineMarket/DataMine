@@ -174,7 +174,8 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const dataListingFactory: DataListingFactory = await ethers.getContract("DataListingFactory", deployer)
     const dataListingFactoryAddress = await dataListingFactory.getAddress()
 
-    const approvePurchase = await token.approve(dataListingFactoryAddress, "100000000000000000000")
+    const listingBalance = "100000000000000000000"
+    await token.approve(dataListingFactoryAddress, listingBalance)
 
     log("Creating new Data Listing...")
     const createTx = await dataListingFactory.createDataListing(
@@ -185,7 +186,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
         encryptedSecretsUrls,
         "GoogleFit",
         tokenAddress,
-        "100000000000000000000",
+        listingBalance,
         "100",
     )
 
