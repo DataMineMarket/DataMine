@@ -15,10 +15,6 @@ contract DataListing is FunctionsClient, ConfirmedOwner {
 
     string[] public s_dataCIDs;
 
-    enum RequestType {
-        PROVIDE,
-        DECRYPT
-    }
     mapping(bytes32 requestId => address provider) private s_dataPointProviders;
 
     string public s_provideScript;

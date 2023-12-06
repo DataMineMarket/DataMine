@@ -11,7 +11,6 @@ import {
 import * as crypto from "crypto"
 import { fromBase64, arrayBufferToBase64, base64ToArrayBuffer } from "../../utils/conversions"
 const { ethers: ethersv5 } = require("ethers-v5")
-import { networkConfig } from "../../helper-hardhat-config"
 
 !(network.name == "hardhat")
     ? describe.skip : describe("Functions Unit Tests", function () {
