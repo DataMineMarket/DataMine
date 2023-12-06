@@ -32,18 +32,30 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const donId = networkConfig[chainId].functionsDonId!
     const linkTokenAddress = networkConfig[chainId].linkToken!
     const subscriptionId = networkConfig[chainId].functionsSubscriptionId!
+    let token: any, tokenAddress: string
 
     log("----------------------------------------------------")
 
-    await deploy("ERC20Token", {
-        from: deployer,
-        args: ["1000000000000000000000000"],
-        log: true,
-        waitConfirmations: networkConfig[chainId].blockConfirmations || 1,
-    })
+    if (chainId != 31337) {
+        const accounts = await ethers.getSigners()
+        tokenAddress = "0x52D800ca262522580CeBAD275395ca6e7598C014"
+        const tokenAbi = fs.readFileSync("./abis/erc20Abi.abi.json", "utf8")
+        token = new ethers.Contract(
+            tokenAddress,
+            tokenAbi,
+            accounts[0],
+        )
+    } else {
+        await deploy("ERC20Token", {
+            from: deployer,
+            args: ["1000000000000000000000000"],
+            log: true,
+            waitConfirmations: networkConfig[chainId].blockConfirmations || 1,
+        })
 
-    const token: ERC20Token = await ethers.getContract("ERC20Token", deployer)
-    const tokenAddress: string = await token.getAddress();
+        token = await ethers.getContract("ERC20Token", deployer)
+        tokenAddress = await token.getAddress();
+    }
 
     await deploy("DataListingFactory", {
         from: deployer,
@@ -174,7 +186,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const dataListingFactory: DataListingFactory = await ethers.getContract("DataListingFactory", deployer)
     const dataListingFactoryAddress = await dataListingFactory.getAddress()
 
-    const listingBalance = "100000000000000000000"
+    const listingBalance = 10000000000n
     const approveTx = await token.approve(dataListingFactoryAddress, listingBalance)
     await approveTx.wait(1)
 
@@ -188,7 +200,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
         "GoogleFit",
         tokenAddress,
         listingBalance,
-        "100",
+        100n,
     )
 
     const createTxReceipt = await createTx.wait(1) // Wait for the transaction to be mined

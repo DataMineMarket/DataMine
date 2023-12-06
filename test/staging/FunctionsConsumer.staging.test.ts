@@ -25,32 +25,30 @@ const { ethers: ethersv5 } = require("ethers-v5")
     ? describe.skip
     : describe("DataNexus Staging Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
-        let dataListingContract: DataListing, dataListing: DataListing, usdcTokenContract: any
+        let dataListingContract: DataListing, dataListing: DataListing, usdcTokenContract: any, usdcToken: any
         let tokenCryptoKey: CryptoKey
         let dataKey: string
-        let secrets: Record<string, string>
         let cidArray: string[]
         let lastCID: string
         let dataListingAddress: AddressLike
 
         const chainId = network.config.chainId || 31337
 
-        const provideScript = fs.readFileSync("scripts/noRequest.js", "utf-8"); // TODO: use real script
-        const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
-
         beforeEach(async function () {
             accounts = await ethers.getSigners()
             deployer = accounts[0]
             user = accounts[1]
-            usdcTokenContract = await ethers.getContract("ERC20Token")
-            // const usdcTokenAbi = fs.readFileSync("./abis/erc20Abi.abi.json", "utf8")
-            // usdcTokenContract = new ethers.Contract(
-            //     "0x1fdE0eCc619726f4cD597887C9F3b4c8740e19e2",
-            //     usdcTokenAbi,
-            //     deployer,
-            // )
+
+            const tokenAddress = "0x52D800ca262522580CeBAD275395ca6e7598C014"
+            const tokenAbi = fs.readFileSync("./abis/erc20Abi.abi.json", "utf8")
+            usdcTokenContract = new ethers.Contract(
+                tokenAddress,
+                tokenAbi,
+                deployer,
+            )
+            usdcToken = await usdcTokenContract.connect(deployer)
+
             const dataListingFactoryContract: DataListingFactory = await ethers.getContract("DataListingFactory")
-            const dataListingFactoryAddress = await dataListingFactoryContract.getAddress()
             dataListingAddress = await dataListingFactoryContract.getLastDataListing()
             dataListingContract = await ethers.getContractAt("DataListing", dataListingAddress) as unknown as DataListing
             dataListing = dataListingContract.connect(deployer)
@@ -69,14 +67,14 @@ const { ethers: ethersv5 } = require("ethers-v5")
             dataKey = await dataListingContract.getDataKey();
         })
         describe("constructor", function () {
-            it("should deploy and mint USDC", async function () {
+            it("should deposit USDC to listing", async function () {
                 const dataListingAddress = await dataListingContract.getAddress()
-                const dataListingBalance = await usdcTokenContract.balanceOf(dataListingAddress)
+                const dataListingBalance = await usdcToken.balanceOf(dataListingAddress)
                 const dataListingBalanceField = await dataListingContract.getTokenBalance()
 
                 const purchaserAddress = await dataListingContract.getPurchaser()
-                const purchaserBalance = await usdcTokenContract.balanceOf(purchaserAddress)
-                const purchaserAllowance = await usdcTokenContract.allowance(purchaserAddress, dataListingAddress)
+                const purchaserBalance = await usdcToken.balanceOf(purchaserAddress)
+                const purchaserAllowance = await usdcToken.allowance(purchaserAddress, dataListingAddress)
 
                 console.log("Purchaser:", purchaserAddress, "Balance:", purchaserBalance, "Allowance:", purchaserAllowance)
                 console.log("Listing:", dataListingAddress, "Balance:", dataListingBalance)
@@ -87,11 +85,11 @@ const { ethers: ethersv5 } = require("ethers-v5")
             it("should set the price for a data point", async function () {
                 const dataPointPrice = await dataListingContract.getDataPointPrice()
                 console.log("Data Point Price:", dataPointPrice)
-                expect(dataPointPrice).to.equal("1000000000000000000")
+                expect(dataPointPrice).to.equal(100000000n)
             })
             it("should successfully call google API", async function () {
-                const purchaserInitialBalance = await usdcTokenContract.balanceOf(deployer.address)
-                const listingInitialBalance = await usdcTokenContract.balanceOf(dataListingAddress)
+                const purchaserInitialBalance = await usdcToken.balanceOf(deployer.address)
+                const listingInitialBalance = await usdcToken.balanceOf(dataListingAddress)
                 const dataPointPrice = await dataListingContract.getDataPointPrice()
 
                 let enc = new TextEncoder();
@@ -193,8 +191,8 @@ const { ethers: ethersv5 } = require("ethers-v5")
                                 expect(lastCID.startsWith("bafkrei")).to.be.true;
                             }
 
-                            const purchaserBalance = await usdcTokenContract.balanceOf(deployer.address)
-                            const listingBalance = await usdcTokenContract.balanceOf(dataListingAddress)
+                            const purchaserBalance = await usdcToken.balanceOf(deployer.address)
+                            const listingBalance = await usdcToken.balanceOf(dataListingAddress)
                             console.log("Purchaser")
                             console.log("\tInitial Balance:", purchaserInitialBalance)
                             console.log("\tBalance:", purchaserBalance, "Increased by:", purchaserBalance - purchaserInitialBalance)

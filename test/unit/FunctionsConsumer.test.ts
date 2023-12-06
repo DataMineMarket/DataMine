@@ -22,8 +22,7 @@ import { networkConfig } from "../../helper-hardhat-config"
         let lastCID: string
         let secrets: Record<string, string>
 
-        const provideScript = fs.readFileSync("scripts/provide.js", "utf-8"); // TODO: use real script
-        const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
+        const provideScript = fs.readFileSync("scripts/provide.js", "utf-8");
 
         beforeEach(async function () {
             accounts = await ethers.getSigners()
@@ -65,7 +64,7 @@ import { networkConfig } from "../../helper-hardhat-config"
             it("should set the price for a data point", async function () {
                 const dataPointPrice = await dataListingContract.getDataPointPrice()
                 console.log(dataPointPrice)
-                expect(dataPointPrice).to.equal("1000000000000000000")
+                expect(dataPointPrice).to.equal(100000000n)
             })
             it("should successfully call google API", async function () {
                 let enc = new TextEncoder();
