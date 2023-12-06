@@ -25,7 +25,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
     ? describe.skip
     : describe("DataNexus Staging Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
-        let dataListingContract: DataListing, dataListing: DataListing, usdcTokenContract: ERC20Token
+        let dataListingContract: DataListing, dataListing: DataListing, usdcTokenContract: any
         let tokenCryptoKey: CryptoKey
         let dataKey: string
         let secrets: Record<string, string>
@@ -43,6 +43,12 @@ const { ethers: ethersv5 } = require("ethers-v5")
             deployer = accounts[0]
             user = accounts[1]
             usdcTokenContract = await ethers.getContract("ERC20Token")
+            // const usdcTokenAbi = fs.readFileSync("./abis/erc20Abi.abi.json", "utf8")
+            // usdcTokenContract = new ethers.Contract(
+            //     "0x1fdE0eCc619726f4cD597887C9F3b4c8740e19e2",
+            //     usdcTokenAbi,
+            //     deployer,
+            // )
             const dataListingFactoryContract: DataListingFactory = await ethers.getContract("DataListingFactory")
             const dataListingFactoryAddress = await dataListingFactoryContract.getAddress()
             dataListingAddress = await dataListingFactoryContract.getLastDataListing()

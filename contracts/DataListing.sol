@@ -101,36 +101,6 @@ contract DataListing is FunctionsClient, ConfirmedOwner {
     }
 
     /**
-     * @notice Send a request to decrypt data
-     * @param donHostedSecretsSlotID Don hosted secrets slotId
-     * @param donHostedSecretsVersion Don hosted secrets version
-     * @param args List of arguments accessible from within the source code
-     * @param bytesArgs Array of bytes arguments, represented as hex strings
-     * @param subscriptionId Billing ID
-     */
-    function decryptData(
-        string memory source,
-        uint8 donHostedSecretsSlotID,
-        uint64 donHostedSecretsVersion,
-        string[] memory args,
-        bytes[] memory bytesArgs,
-        uint64 subscriptionId,
-        uint32 gasLimit,
-        bytes32 donID
-    ) external onlyOwner {
-        FunctionsRequest.Request memory req;
-        req.initializeRequestForInlineJavaScript(source);
-        if (s_encryptedSecretsUrls.length > 0) req.addSecretsReference(s_encryptedSecretsUrls);
-        else if (donHostedSecretsVersion > 0) {
-            req.addDONHostedSecrets(donHostedSecretsSlotID, donHostedSecretsVersion);
-        }
-        if (args.length > 0) req.setArgs(args);
-        if (bytesArgs.length > 0) req.setBytesArgs(bytesArgs);
-        s_lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionId, gasLimit, donID);
-        // s_requests[s_lastRequestId] = RequestType.DECRYPT;
-    }
-
-    /**
      * @notice Send a pre-encoded CBOR request
      * @param request CBOR-encoded request data
      * @param subscriptionId Billing ID
