@@ -1,6 +1,6 @@
 import { assert, expect } from "chai"
 import { network, deployments, ethers } from "hardhat"
-import { FunctionsConsumer, DataListingFactory } from "../../typechain-types"
+import { DataListing, DataListingFactory, ERC20Token } from "../../typechain-types"
 import { HardhatEthersSigner } from "@nomicfoundation/hardhat-ethers/signers"
 import fs from "fs";
 import {
@@ -15,14 +15,13 @@ const { ethers: ethersv5 } = require("ethers-v5")
 !(network.name == "hardhat")
     ? describe.skip : describe("Functions Unit Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
-        let functionsContract: FunctionsConsumer, dataListingFactoryContract: DataListingFactory
-        let tokenCryptoKey: CryptoKey, ipfsCryptoKey: CryptoKey
+        let dataListingContract: DataListing, dataListingFactoryContract: DataListingFactory, usdcTokenContract: ERC20Token
+        let tokenCryptoKey: CryptoKey
         let dataKey: string
         let lastCID: string
         let secrets: Record<string, string>
 
         const provideScript = fs.readFileSync("scripts/provide.js", "utf-8");
-        const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
 
         beforeEach(async function () {
             accounts = await ethers.getSigners()
@@ -30,10 +29,11 @@ const { ethers: ethersv5 } = require("ethers-v5")
             user = accounts[1]
             await deployments.fixture(["all"])
             secrets = JSON.parse(fs.readFileSync("test/helper/secrets.json", "utf-8"));
+            usdcTokenContract = await ethers.getContract("ERC20Token")
             dataListingFactoryContract = await ethers.getContract("DataListingFactory")
-            const functionsConsumerAddress = await dataListingFactoryContract.getLastDataListing()
-            functionsContract = await ethers.getContractAt("FunctionsConsumer", functionsConsumerAddress) as unknown as FunctionsConsumer
-            const tokenKey = await functionsContract.getTokenKey();
+            const dataListingAddress = await dataListingFactoryContract.getLastDataListing()
+            dataListingContract = await ethers.getContractAt("DataListing", dataListingAddress) as unknown as DataListing
+            const tokenKey = await dataListingContract.getTokenKey();
             tokenCryptoKey = await crypto.subtle.importKey(
                 "spki",
                 fromBase64(tokenKey),
@@ -44,10 +44,27 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 true,
                 ["encrypt"]
             )
-            dataKey = await functionsContract.getDataKey();
+            dataKey = await dataListingContract.getDataKey();
         })
 
         describe("constructor", function () {
+            it("should deploy and mint USDC", async function () {
+                const usdcSupply = await usdcTokenContract.totalSupply();
+                const purchaserAddress = await dataListingContract.getPurchaser()
+                const dataListingAddress = await dataListingContract.getAddress()
+                const purchaserBalance = await usdcTokenContract.balanceOf(purchaserAddress)
+                const purchaserAllowance = await usdcTokenContract.allowance(purchaserAddress, dataListingAddress)
+                console.log("Purchaser:", purchaserAddress, "Balance:", purchaserBalance, "Allowance:", purchaserAllowance)
+                const dataListingBalance = await usdcTokenContract.balanceOf(dataListingAddress)
+                console.log("Listing:  ", dataListingAddress, "Balance:   ", dataListingBalance)
+                expect(purchaserAllowance).to.equal("0")
+                expect(purchaserBalance).to.equal(usdcSupply - dataListingBalance)
+            })
+            it("should set the price for a data point", async function () {
+                const dataPointPrice = await dataListingContract.getDataPointPrice()
+                console.log(dataPointPrice)
+                expect(dataPointPrice).to.equal(100000000n)
+            })
             it("should successfully call google API", async function () {
                 let enc = new TextEncoder();
                 const googleToken = enc.encode(process.env.GOOGLE_ACCESS_TOKEN!);

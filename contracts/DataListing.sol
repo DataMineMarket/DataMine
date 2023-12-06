@@ -1,11 +1,12 @@
 // SPDX-License-Identifier: MIT
-pragma solidity 0.8.19;
+pragma solidity 0.8.20;
 
 import {FunctionsClient} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/FunctionsClient.sol";
 import {ConfirmedOwner} from "@chainlink/contracts/src/v0.8/shared/access/ConfirmedOwner.sol";
 import {FunctionsRequest} from "@chainlink/contracts/src/v0.8/functions/dev/v1_0_0/libraries/FunctionsRequest.sol";
+import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 
-contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
+contract DataListing is FunctionsClient, ConfirmedOwner {
     using FunctionsRequest for FunctionsRequest.Request;
 
     bytes32 public s_lastRequestId;
@@ -14,22 +15,24 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     string[] public s_dataCIDs;
 
-    enum RequestType {
-        PROVIDE,
-        DECRYPT
-    }
-    mapping(bytes32 requestId => RequestType requestType) private s_requests;
+    mapping(bytes32 requestId => address provider) private s_dataPointProviders;
 
     string public s_provideScript;
-
     string public s_tokenKey;
     string public s_dataKey;
     bytes public s_encryptedSecretsUrls;
     string public s_dataSource;
+    address public immutable i_tokenAddress;
+    address public immutable i_purchaser;
+    IERC20 private s_token;
+    uint256 public s_tokenBalance;
+    uint256 public s_dataPointQuantity;
+    uint256 public immutable i_dataPointPrice;
 
     error UnexpectedRequestID(bytes32 requestId);
 
     event Response(bytes32 indexed requestId, bytes response, bytes err);
+    event Reward(address provider, uint256 amount);
 
     /**
      * @notice Initialize the contract with a specified address for the LINK token
@@ -46,13 +49,22 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         string memory tokenKey,
         string memory dataKey,
         bytes memory encryptedSecretsUrls,
-        string memory dataSource
+        string memory dataSource,
+        address tokenAddress,
+        uint256 initialBalance,
+        uint256 dataPointQuantity
     ) FunctionsClient(router) ConfirmedOwner(tx.origin) {
+        i_purchaser = tx.origin;
         s_provideScript = provideScript;
         s_tokenKey = tokenKey;
         s_dataKey = dataKey;
         s_encryptedSecretsUrls = encryptedSecretsUrls;
         s_dataSource = dataSource;
+        i_tokenAddress = tokenAddress;
+        s_token = IERC20(tokenAddress);
+        s_tokenBalance = initialBalance;
+        s_dataPointQuantity = dataPointQuantity;
+        i_dataPointPrice = s_tokenBalance / s_dataPointQuantity;
     }
 
     /**
@@ -71,7 +83,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         uint64 subscriptionId,
         uint32 gasLimit,
         bytes32 donID
-    ) external onlyOwner {
+    ) external {
         FunctionsRequest.Request memory req;
         req.initializeRequestForInlineJavaScript(s_provideScript);
         if (s_encryptedSecretsUrls.length > 0) req.addSecretsReference(s_encryptedSecretsUrls);
@@ -81,37 +93,7 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         if (args.length > 0) req.setArgs(args);
         if (bytesArgs.length > 0) req.setBytesArgs(bytesArgs);
         s_lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionId, gasLimit, donID);
-        s_requests[s_lastRequestId] = RequestType.PROVIDE;
-    }
-
-    /**
-     * @notice Send a request to decrypt data
-     * @param donHostedSecretsSlotID Don hosted secrets slotId
-     * @param donHostedSecretsVersion Don hosted secrets version
-     * @param args List of arguments accessible from within the source code
-     * @param bytesArgs Array of bytes arguments, represented as hex strings
-     * @param subscriptionId Billing ID
-     */
-    function decryptData(
-        string memory source,
-        uint8 donHostedSecretsSlotID,
-        uint64 donHostedSecretsVersion,
-        string[] memory args,
-        bytes[] memory bytesArgs,
-        uint64 subscriptionId,
-        uint32 gasLimit,
-        bytes32 donID
-    ) external onlyOwner {
-        FunctionsRequest.Request memory req;
-        req.initializeRequestForInlineJavaScript(source);
-        if (s_encryptedSecretsUrls.length > 0) req.addSecretsReference(s_encryptedSecretsUrls);
-        else if (donHostedSecretsVersion > 0) {
-            req.addDONHostedSecrets(donHostedSecretsSlotID, donHostedSecretsVersion);
-        }
-        if (args.length > 0) req.setArgs(args);
-        if (bytesArgs.length > 0) req.setBytesArgs(bytesArgs);
-        s_lastRequestId = _sendRequest(req.encodeCBOR(), subscriptionId, gasLimit, donID);
-        s_requests[s_lastRequestId] = RequestType.DECRYPT;
+        s_dataPointProviders[s_lastRequestId] = tx.origin;
     }
 
     /**
@@ -150,11 +132,15 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
         s_lastResponse = response;
         s_lastError = err;
 
-        RequestType requestType = s_requests[requestId];
+        address provider = s_dataPointProviders[requestId];
         string memory responseString = string(response);
 
-        if (err.length == 0 && requestType == RequestType.PROVIDE) {
+        if (err.length == 0) {
             s_dataCIDs.push(responseString);
+            s_dataPointQuantity -= 1;
+            s_tokenBalance -= i_dataPointPrice;
+            require(s_token.transfer(provider, i_dataPointPrice), "Token transfer failed");
+            emit Reward(provider, i_dataPointPrice);
         }
 
         emit Response(requestId, s_lastResponse, s_lastError);
@@ -178,5 +164,17 @@ contract FunctionsConsumer is FunctionsClient, ConfirmedOwner {
 
     function getDataSource() external view returns (string memory) {
         return s_dataSource;
+    }
+
+    function getPurchaser() external view returns (address) {
+        return i_purchaser;
+    }
+
+    function getDataPointPrice() external view returns (uint256) {
+        return i_dataPointPrice;
+    }
+
+    function getTokenBalance() external view returns (uint256) {
+        return s_tokenBalance;
     }
 }
