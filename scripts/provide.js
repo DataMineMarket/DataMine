@@ -84,10 +84,10 @@ const aesKey = await crypto.subtle.generateKey({ name: "AES-GCM", length: 256 },
 const iv = crypto.getRandomValues(new Uint8Array(12)) // Initialization vector for AES
 // Build the HTTP request object for Google Fitness API
 const googleFitnessRequest = Functions.makeHttpRequest({
-    url: `https://www.googleapis.com/fitness/v1/users/me/sessions`,
+    url: "https://www.googleapis.com/fitness/v1/users/me/sessions",
     headers: {
         "Content-Type": "application/json",
-        Authorization: `Bearer ${accessToken}`,
+        Authorization: "Bearer " + accessToken,
     },
 })
 
@@ -116,7 +116,7 @@ for (let i = 0; i < chunkData.length; i++) {
         method: "POST",
         headers: {
             "Content-Type": "*",
-            Authorization: `Bearer ${secrets.ipfsAuth}`,
+            Authorization: "Bearer " + secrets.ipfsAuth,
         },
         data: {
             data: chunkData[i],
@@ -137,7 +137,7 @@ const aesKeyStorageRequest = Functions.makeHttpRequest({
     method: "POST",
     headers: {
         "Content-Type": "*",
-        Authorization: `Bearer ${secrets.ipfsAuth}`,
+        Authorization: "Bearer " + secrets.ipfsAuth,
     },
     data: {
         aesKey: arrayBufferToBase64(encryptedAesKey),
