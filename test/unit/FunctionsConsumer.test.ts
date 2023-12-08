@@ -48,6 +48,11 @@ const { ethers: ethersv5 } = require("ethers-v5")
         })
 
         describe("constructor", function () {
+            it("should sucessfully get dataListing owner", async function () {
+                const ownerContracts = await dataListingFactoryContract.getOwnerListings(deployer.address)
+                expect(ownerContracts.includes(await dataListingContract.getAddress())).to.be.true
+            })
+
             it("should deploy and mint USDC", async function () {
                 const usdcSupply = await usdcTokenContract.totalSupply();
                 const purchaserAddress = await dataListingContract.getPurchaser()
@@ -63,7 +68,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
             it("should set the price for a data point", async function () {
                 const dataPointPrice = await dataListingContract.getDataPointPrice()
                 console.log(dataPointPrice)
-                expect(dataPointPrice).to.equal(100000000n)
+                expect(dataPointPrice).to.equal(1000000n)
             })
             it("should successfully call google API", async function () {
                 let enc = new TextEncoder();
