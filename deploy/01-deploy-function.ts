@@ -18,6 +18,7 @@ import { networkConfig } from "../helper-hardhat-config"
 import { DeployFunction } from "hardhat-deploy/types"
 import * as crypto from "crypto"
 import { EventLog } from "ethers";
+import { encryptSecrets, addConsumer } from "../scripts/encryptSecrets";
 
 const toBase64 = (arr: Uint8Array) => btoa(String.fromCodePoint(...arr))
 
@@ -29,9 +30,6 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const chainId = network.config.chainId || 31337
 
     const functionRouterAddress = networkConfig[chainId].functionsRouter!
-    const donId = networkConfig[chainId].functionsDonId!
-    const linkTokenAddress = networkConfig[chainId].linkToken!
-    const subscriptionId = networkConfig[chainId].functionsSubscriptionId!
     let token: any, tokenAddress: string
 
     log("----------------------------------------------------")
@@ -123,7 +121,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
         );
 
     let encryptedSecretsUrls
-    let subscriptionManager: SubscriptionManager
+    let signer
     if (chainId != 31337) {
         const rpcUrl = process.env.POLYGON_MUMBAI_RPC_URL; // fetch mumbai RPC URL
 
@@ -132,37 +130,9 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
         const wallet = new ethersv5.Wallet(privateKey);
         const provider = new ethersv5.providers.JsonRpcProvider(rpcUrl);
-        const signer = wallet.connect(provider); // create ethers signer for signing transactions
+        signer = wallet.connect(provider); // create ethers signer for signing transactions
 
-        const secretsManager = new SecretsManager({
-            signer: signer,
-            functionsRouterAddress: functionRouterAddress,
-            donId: donId,
-        });
-
-        await secretsManager.initialize();
-
-        subscriptionManager = new SubscriptionManager({
-            signer: signer,
-            linkTokenAddress: linkTokenAddress,
-            functionsRouterAddress: functionRouterAddress,
-        });
-
-        await subscriptionManager.initialize();
-
-        const encryptedSecretsObj = await secretsManager.encryptSecrets(secrets);
-
-        console.log(`Creating gist...`);
-
-        // Create a new GitHub Gist to store the encrypted secrets
-        const gistURL = await createGist(
-            githubApiToken,
-            JSON.stringify(encryptedSecretsObj)
-        );
-        console.log(`\n✅Gist created ${gistURL} . Encrypting the URLs..`);
-        encryptedSecretsUrls = await secretsManager.encryptSecretsUrls([
-            gistURL,
-        ]);
+        encryptedSecretsUrls = await encryptSecrets(chainId, signer, secrets)
     } else {
         console.log(`Creating gist...`);
 
@@ -211,13 +181,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     log("✅Data Listing created at: ", dataListingAddress);
 
     if (chainId != 31337) {
-        log("----------------------------------------------------");
-        log("Adding consumer to subscription manager...")
-        const addConsumerTxReceipt = await subscriptionManager!.addConsumer({
-            subscriptionId,
-            consumerAddress: dataListingAddress,
-        })
-        log("✅Consumer added to subscription manager");
+        await addConsumer(chainId, signer, dataListingAddress)
     }
 
     log("----------------------------------------------------");
