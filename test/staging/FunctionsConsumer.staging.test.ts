@@ -25,7 +25,10 @@ const { ethers: ethersv5 } = require("ethers-v5")
     ? describe.skip
     : describe("DataNexus Staging Tests", function () {
         let accounts: HardhatEthersSigner[], deployer: HardhatEthersSigner, user: HardhatEthersSigner
-        let dataListingContract: DataListing, dataListing: DataListing, usdcTokenContract: any, usdcToken: any
+        let dataListingContract: DataListing,
+            dataListing: DataListing,
+            dataListingFactoryContract: DataListingFactory,
+            usdcTokenContract: any, usdcToken: any
         let tokenCryptoKey: CryptoKey
         let dataKey: string
         let cidArray: string[]
@@ -48,7 +51,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
             )
             usdcToken = await usdcTokenContract.connect(deployer)
 
-            const dataListingFactoryContract: DataListingFactory = await ethers.getContract("DataListingFactory")
+            dataListingFactoryContract = await ethers.getContract("DataListingFactory")
             dataListingAddress = await dataListingFactoryContract.getLastDataListing()
             dataListingContract = await ethers.getContractAt("DataListing", dataListingAddress) as unknown as DataListing
             dataListing = dataListingContract.connect(deployer)
@@ -67,6 +70,10 @@ const { ethers: ethersv5 } = require("ethers-v5")
             dataKey = await dataListingContract.getDataKey();
         })
         describe("constructor", function () {
+            it("should sucessfully get dataListing owner", async function () {
+                const ownerContracts = await dataListingFactoryContract.getOwnerListings(deployer.address)
+                expect(ownerContracts.includes(await dataListingContract.getAddress())).to.be.true
+            })
             it("should deposit USDC to listing", async function () {
                 const dataListingAddress = await dataListingContract.getAddress()
                 const dataListingBalance = await usdcToken.balanceOf(dataListingAddress)
@@ -85,7 +92,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
             it("should set the price for a data point", async function () {
                 const dataPointPrice = await dataListingContract.getDataPointPrice()
                 console.log("Data Point Price:", dataPointPrice)
-                expect(dataPointPrice).to.equal(100000000n)
+                expect(dataPointPrice).to.equal(1000000n)
             })
             it("should successfully call google API", async function () {
                 const purchaserInitialBalance = await usdcToken.balanceOf(deployer.address)

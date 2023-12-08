@@ -67,7 +67,6 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     log("----------------------------------------------------")
 
     const provideScript = fs.readFileSync("scripts/provide.js", "utf-8"); // TODO: use real script
-    const decryptScript = fs.readFileSync("scripts/decrypt.js", "utf-8");
 
     // API Key Encryption
     const tokenKeyPair = await crypto.subtle.generateKey(
@@ -186,9 +185,11 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     const dataListingFactory: DataListingFactory = await ethers.getContract("DataListingFactory", deployer)
     const dataListingFactoryAddress = await dataListingFactory.getAddress()
 
-    const listingBalance = 10000000000n
+    log("Approving tokens to Data Listing Factory...")
+    const listingBalance = 100000000n
     const approveTx = await token.approve(dataListingFactoryAddress, listingBalance)
-    await approveTx.wait(1)
+    await approveTx.wait()
+    log("✅Tokens approved")
 
     log("Creating new Data Listing...")
     const createTx = await dataListingFactory.createDataListing(

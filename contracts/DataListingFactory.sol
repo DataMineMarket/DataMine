@@ -7,6 +7,7 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract DataListingFactory {
     DataListing[] public s_dataListingContracts;
     string[] public s_dataListingSources;
+    mapping(address => address[]) public contractOwners;
 
     event DataListingCreated(address indexed dataListing, string indexed dataSource);
 
@@ -52,9 +53,19 @@ contract DataListingFactory {
         s_dataListingSources.push(dataSource);
         emit DataListingCreated(address(listing), dataSource);
 
-        require(token.transferFrom(purchaser, address(listing), initialBalance), "Token transfer failed");
+        require(
+            token.transferFrom(purchaser, address(listing), initialBalance),
+            "Token transfer failed"
+        );
 
-        return address(listing);
+        address listingAddress = address(listing);
+        if (contractOwners[purchaser].length == 0) {
+            contractOwners[purchaser] = [listingAddress];
+        } else {
+            contractOwners[purchaser].push(listingAddress);
+        }
+
+        return listingAddress;
     }
 
     /**
@@ -91,5 +102,12 @@ contract DataListingFactory {
      **/
     function getLastDataListing() external view returns (DataListing) {
         return s_dataListingContracts[s_dataListingContracts.length - 1];
+    }
+
+    /**
+     * @notice Get an address's DataListing contracts
+     **/
+    function getOwnerListings(address owner) external view returns (address[] memory) {
+        return contractOwners[owner];
     }
 }
