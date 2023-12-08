@@ -56,7 +56,7 @@ The local tests use Chainlink's [functions toolkit](https://github.com/smartcont
 
 This test will run on mumbai testnet, and will use real testnet funds.
 
-Prerequisite: Get USDC from the [AAVE Faucet](https://app.aave.com/faucet/?marketName=proto_mumbai_v3)
+Prerequisite: Get USDC from the [AAVE Faucet](https://app.aave.com/faucet/?marketName=proto_mumbai_v3). You will need to enable testnet mode at the top right.
 
 1. Run `yarn hardhat deploy --network mumbai`
 2. The deploy script will automatically update your [subscription](https://functions.chain.link/mumbai/621) with a newly created consumer.
