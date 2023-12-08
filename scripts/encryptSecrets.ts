@@ -12,7 +12,7 @@ type Secrets = {
     ipfsAuth: string
 }
 
-export const encryptSecrets = async (chainId: number, signer: Signer, secrets: Secrets): Promise<string> => {
+export const encryptSecrets = async (chainId: number, signer: any, secrets: Secrets): Promise<string> => {
     const functionRouterAddress = networkConfig[chainId].functionsRouter!
     const donId = networkConfig[chainId].functionsDonId!
 
@@ -23,7 +23,7 @@ export const encryptSecrets = async (chainId: number, signer: Signer, secrets: S
         );
 
     const secretsManager = new SecretsManager({
-        signer: signer as any,
+        signer: signer,
         functionsRouterAddress: functionRouterAddress,
         donId: donId,
     });
@@ -46,12 +46,12 @@ export const encryptSecrets = async (chainId: number, signer: Signer, secrets: S
     return encryptedSecretsUrls
 }
 
-export const addConsumer = async (chainId: number, signer: Signer, consumerAddress: string) => {
+export const addConsumer = async (chainId: number, signer: any, consumerAddress: string) => {
     const functionRouterAddress = networkConfig[chainId].functionsRouter!
     const linkTokenAddress = networkConfig[chainId].linkToken!
     const subscriptionId = networkConfig[chainId].functionsSubscriptionId!
     const subscriptionManager = new SubscriptionManager({
-        signer: signer as any,
+        signer: signer,
         linkTokenAddress: linkTokenAddress,
         functionsRouterAddress: functionRouterAddress,
     });
@@ -59,7 +59,7 @@ export const addConsumer = async (chainId: number, signer: Signer, consumerAddre
 
     console.log("----------------------------------------------------");
     console.log("Adding consumer to subscription manager...")
-    await subscriptionManager!.addConsumer({
+    await subscriptionManager.addConsumer({
         subscriptionId,
         consumerAddress: consumerAddress,
     })
