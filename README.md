@@ -1,4 +1,5 @@
 # DataNexus Contracts
+
 DataNexus is a decentralized, peer-to-peer market that enables average, everyday people to control their data. Businesses are able to securely purchase personal data generated from web APIs. Using Chainlink functions along with a streamlined encryption scheme, user secrets and personal data are never revealed publicly. The data is only revealed to the purchaser upon transfer of funds.
 
 ## Prerequisites
@@ -9,11 +10,13 @@ DataNexus is a decentralized, peer-to-peer market that enables average, everyday
 ## Installing
 
 1. Install dependencies:
+
 ```
 yarn install
 ```
 
 2. Compile Contracts:
+
 ```
 yarn hardhat compile
 ```
@@ -21,6 +24,7 @@ yarn hardhat compile
 ## Testing
 
 ### Configure .env
+
 To run the following tests, you have to have a `.env` file configured. Copy the `.env.example` and fill in the require environemnt variables.
 
 1. You can create RPC URL using [Alchemy](https://www.alchemy.com/) or [Chainlist](https://chainlist.org/?search=avalanche&testnets=true) for testnet.
@@ -33,24 +37,28 @@ To run the following tests, you have to have a `.env` file configured. Copy the 
 ### Frontend Integration
 
 1. Clone frontend repo in the same root directory
+
 ```
 git clone https://github.com/DataMineMarket/Frontend.git
 ```
+
 2. Set `UPDATE_FRONT_END=true` in `.env`
-3. Now, upon deployment, the frontend will be updated with the reveleant contract addresses and ABIs.
+3. Now, upon deployment, the frontend will be updated with the relevant contract addresses and ABIs.
 
 ### Local Tests
+
 The local tests use Chainlink's [functions toolkit](https://github.com/smartcontractkit/functions-toolkit) to simulate functions executions localy.
 
 1. Create a file `test/helper/secrets.json`, this will be populated with a local private key after running the test command below.
 2. Run `yarn hardhat test` to run the local tests
 
 ### Staging Tests
+
 This test will run on mumbai testnet, and will use real testnet funds.
 
 Prerequisite: Get USDC from the [AAVE Faucet](https://app.aave.com/faucet/?marketName=proto_mumbai_v3)
 
 1. Run `yarn hardhat deploy --network mumbai`
 2. The deploy script will automatically update your [subscription](https://functions.chain.link/mumbai/621) with a newly created consumer.
-   - Make sure your subscription Id is configured in `functionsSubscriptionId` in `helper-hardhat-config.ts`
+    - Make sure your subscription Id is configured in `functionsSubscriptionId` in `helper-hardhat-config.ts`
 3. Run `yarn hardhat test --network mumbai`
