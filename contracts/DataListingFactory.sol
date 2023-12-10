@@ -7,6 +7,8 @@ import "@openzeppelin/contracts/token/ERC20/IERC20.sol";
 contract DataListingFactory {
     DataListing[] public s_dataListingContracts;
     string[] public s_dataListingSources;
+    uint256[] public s_dataListingInitialBalances;
+    uint256[] public s_dataListingDataPointQuantities;
     mapping(address => address[]) public contractOwners;
 
     event DataListingCreated(address indexed dataListing, string indexed dataSource);
@@ -51,6 +53,9 @@ contract DataListingFactory {
 
         s_dataListingContracts.push(listing);
         s_dataListingSources.push(dataSource);
+        s_dataListingInitialBalances.push(initialBalance);
+        s_dataListingDataPointQuantities.push(dataPointQuantity);
+        
         emit DataListingCreated(address(listing), dataSource);
 
         require(
@@ -109,5 +114,19 @@ contract DataListingFactory {
      **/
     function getOwnerListings(address owner) external view returns (address[] memory) {
         return contractOwners[owner];
+    }
+
+    /** 
+     * @notice Get an address's initial balance for a DataListing contract
+     */
+    function getDataListingInitialBalance() external view returns (uint256[] memory) {
+        return s_dataListingInitialBalances;
+    }
+
+    /** 
+     * @notice Get an address's data point quantity for a DataListing contract
+     */
+    function getDataListingDataPointQuantity() external view returns (uint256[] memory) {
+        return s_dataListingDataPointQuantities;
     }
 }
