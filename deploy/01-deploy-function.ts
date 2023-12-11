@@ -36,7 +36,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
 
     if (chainId != 31337) {
         const accounts = await ethers.getSigners()
-        tokenAddress = "0x52D800ca262522580CeBAD275395ca6e7598C014"
+        tokenAddress = networkConfig[chainId].usdcAddress!
         const tokenAbi = fs.readFileSync("./abis/erc20Abi.abi.json", "utf8")
         token = new ethers.Contract(
             tokenAddress,
@@ -63,6 +63,7 @@ const deployFunctions: DeployFunction = async function (hre: HardhatRuntimeEnvir
     })
 
     log("----------------------------------------------------")
+    console.log(networkConfig[chainId])
 
     const provideScript = fs.readFileSync("scripts/provide.js", "utf-8"); // TODO: use real script
 

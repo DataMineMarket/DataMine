@@ -42,10 +42,10 @@ const { ethers: ethersv5 } = require("ethers-v5")
             deployer = accounts[0]
             user = accounts[1]
 
-            const tokenAddress = "0x52D800ca262522580CeBAD275395ca6e7598C014"
+            const tokenAddress = networkConfig[chainId].usdcAddress
             const tokenAbi = fs.readFileSync("./abis/erc20Abi.abi.json", "utf8")
             usdcTokenContract = new ethers.Contract(
-                tokenAddress,
+                tokenAddress!,
                 tokenAbi,
                 deployer,
             )
@@ -59,7 +59,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
             const tokenKey = await dataListingContract.getTokenKey();
             tokenCryptoKey = await crypto.subtle.importKey(
                 "spki",
-                fromBase64(tokenKey),
+                base64ToArrayBuffer(tokenKey),
                 {
                     name: "RSA-OAEP",
                     hash: "SHA-256",
@@ -129,9 +129,8 @@ const { ethers: ethersv5 } = require("ethers-v5")
                     `See your request in the explorer ${networkConfig[chainId].explorerUrl}/tx/${transaction.hash}`
                 );
 
-                const rpcUrl = process.env.POLYGON_MUMBAI_RPC_URL
+                const rpcUrl = networkConfig[chainId].rpcUrl
                 const provider = new ethersv5.providers.JsonRpcProvider(rpcUrl);
-
 
                 const responseListener = new ResponseListener({
                     provider: provider,

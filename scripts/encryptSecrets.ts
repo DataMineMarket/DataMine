@@ -16,6 +16,8 @@ export const encryptSecrets = async (chainId: number, signer: any, secrets: Secr
     const functionRouterAddress = networkConfig[chainId].functionsRouter!
     const donId = networkConfig[chainId].functionsDonId!
 
+    console.log(functionRouterAddress, donId)
+
     const githubApiToken = process.env.GITHUB_API_TOKEN;
     if (!githubApiToken)
         throw new Error(

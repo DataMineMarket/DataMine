@@ -89,6 +89,7 @@ const { ethers: ethersv5 } = require("ethers-v5")
                 console.log(response.capturedTerminalOutput)
 
                 const errorString = response.errorString;
+                console.log(errorString)
                 expect(errorString).to.be.undefined;
 
                 const responseBytesHexstring = response.responseBytesHexstring;

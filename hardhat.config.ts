@@ -21,6 +21,8 @@ const POLYGON_MAINNET_RPC_URL =
   process.env.POLYGON_MAINNET_RPC_URL || "https://polygon-mainnet.alchemyapi.io/v2/your-api-key"
 const POLYGON_MUMBAI_RPC_URL =
   process.env.POLYGON_MUMBAI_RPC_URL || "https://polygon-mumbai.alchemyapi.io/v2/your-api-key"
+const AVALANCHE_FUJI_RPC_URL =
+  process.env.AVALANCHE_FUJI_RPC_URL || "https://api.avax-test.network/ext/bc/C/rpc"
 const PRIVATE_KEY = process.env.PRIVATE_KEY
 
 const config: HardhatUserConfig = {
@@ -58,6 +60,12 @@ const config: HardhatUserConfig = {
       accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
       saveDeployments: true,
       chainId: 80001,
+    },
+    fuji: {
+      url: AVALANCHE_FUJI_RPC_URL,
+      accounts: PRIVATE_KEY !== undefined ? [PRIVATE_KEY] : [],
+      saveDeployments: true,
+      chainId: 43113,
     },
   },
   gasReporter: {

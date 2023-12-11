@@ -55,7 +55,7 @@ contract DataListingFactory {
         s_dataListingSources.push(dataSource);
         s_dataListingInitialBalances.push(initialBalance);
         s_dataListingDataPointQuantities.push(dataPointQuantity);
-        
+
         emit DataListingCreated(address(listing), dataSource);
 
         require(
@@ -116,14 +116,14 @@ contract DataListingFactory {
         return contractOwners[owner];
     }
 
-    /** 
+    /**
      * @notice Get an address's initial balance for a DataListing contract
      */
     function getDataListingInitialBalance() external view returns (uint256[] memory) {
         return s_dataListingInitialBalances;
     }
 
-    /** 
+    /**
      * @notice Get an address's data point quantity for a DataListing contract
      */
     function getDataListingDataPointQuantity() external view returns (uint256[] memory) {
